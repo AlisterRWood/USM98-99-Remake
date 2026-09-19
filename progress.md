@@ -23,3 +23,8 @@ TODO: none for the stadium orientation and zoom-only controls.
 - Added repository hygiene rules for generated build output and binary assets.
 - Smoke-tested claim collision/release and protected-branch rejection.
 - Verification: `swift run -c release USMVerify` — 43 scenarios, 0 failures.
+
+## 2026-09-20
+
+- Added `BUILDING.md` with fresh-clone requirements, verifier/build commands, clean rebuild steps, optional asset-import guidance, and troubleshooting.
+- Updated the README so normal builders do not try to access excluded original-game source dumps.

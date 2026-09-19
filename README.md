@@ -23,16 +23,20 @@ Original CD music and sound effects play through native audio. Music/effects hav
 
 ## Build and verify
 
-Apple Command Line Tools or Xcode, Swift 5.9+, Python 3. Re-extraction of the CD cabinet requires `unshield` (`brew install unshield`). No downloaded Swift package dependencies.
+See [`BUILDING.md`](BUILDING.md) for the complete fresh-clone build guide.
+In short, macOS 14+, Apple Command Line Tools or Xcode, and Swift 5.9+ are
+required. No downloaded Swift package dependencies are used.
 
 ```sh
-python3 tools/extract_assets.py  # Imports the selected roster source; refreshes original CD audio/art assets
 swift run -c release USMVerify
 ./tools/build-app.sh
 open "dist/Ultimate Soccer Manager.app"
 ```
 
-The bundle includes its resources and does not need either source-game folder at runtime. This local Apple Silicon build is ad-hoc signed, not notarized for distribution.
+The checked-in bundle resources are sufficient; the excluded old-game source
+dumps are not needed at runtime. Asset extraction is a maintainer-only task
+when separate local source data is available. This local build is ad-hoc
+signed, not notarized for distribution.
 
 ## Saves and project files
 
