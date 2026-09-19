@@ -1,0 +1,17 @@
+.DS_Store
+.build/
+dist/
+DerivedData/
+*.swp
+*.tmp
+__pycache__/
+
+# Original-game source dumps are local-only evidence and are not part of the
+# reconstructed macOS release.
+MegaUpdate/
+OriginalCD/
+OriginalGameScreenshots/
+WindowsGameFiles/
+
+# Local agent coordination is stored in the shared Git common directory.
+.coordination-local/

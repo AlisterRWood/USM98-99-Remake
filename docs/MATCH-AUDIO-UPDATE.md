@@ -1,0 +1,21 @@
+# Match presentation update — 0.3.2
+
+The native app now bundles 5,583 original CD speech files: event phrases from the extracted cabinet and talking/shouting player names from `OriginalCD/speech/players`. `tools/import_commentary.py` reproduces the import; `commentary-manifest.json` retains each source path and SHA-256. All 5,583 files decoded successfully through AVFoundation. No synthetic voice is used. Names are matched by normalized surname, including multiword surnames where a matching recording exists; an unavailable name is omitted while the event phrase still plays.
+
+A single speech channel sequences names and event phrases. Routine commentary is throttled; shots, goals and important restarts replace stale speech so fast-forward cannot accumulate a long commentary queue. The event mapping covers shots, goals, saves, misses, tackles/interceptions, passing, dribbling, crosses, fouls, free kicks, corners, penalties, cards, offsides and substitutions. All original phrase groups are retained as assets, but groups for unsupported events are not falsely played. Existing crowd/ball sounds remain, with short referee whistles for infringements and the triple whistle for half/full time. The sound control stops speech as well as effects/ambience.
+
+Free kicks, penalties and corners now hold the ball for a three-second simulation setup phase with an on-pitch banner. Players move into attacking/defending positions, including a default wall for free kicks. Saved situation maps override the defaults; free-kick maps are now additional editor options. Designated takers use shooting/set-piece skill for direct kicks and delivery accuracy. Corners cross towards a strong heading player. Substitutions are permitted during the restart, and replacing the taker transfers the restart to the incoming player. Pending restarts survive save/load.
+
+Open-play carriers run into available lanes, shooting earlier in central dangerous positions. Pass scoring discourages immediately returning to the previous passer. Pace now contributes a larger visible range of running speeds; shooting accuracy has a wider skill-dependent range. Existing tackling/control, passing accuracy, keeper skill and fatigue effects remain. This remains a reconstructed engine, not the original binary's match algorithm.
+
+The club ribbon now uses a drawn silver car for FILE, labels above room thumbnails, a HELP question-mark tile and a white month/day tile at the far right. The date reflects the current simplified round calendar (1 August plus seven days per round), not a newly reconstructed historical fixture calendar.
+
+Verification: 34 native scenarios pass, including held-ball restart setup/delivery/save-resume, visible pace ratios, statistically different shooting accuracy, dribbling, the existing full-match and fixed-speed determinism scenarios, and prior career tests. Audio decoding is verified; complete listening/balance review of every original recording remains outside this check.
+
+Native UI inspection confirmed the FILE car, labels above room thumbnails, HELP tile and AUG 01 tile all fit in the ribbon. Watch Match opened successfully with the sound control enabled. Live-interaction verification was interrupted by user input in the QA app; auditory balance is not claimed as independently listened through end-to-end.
+
+## Commentary pacing correction — 0.3.3
+
+Above 1×, only goal speech is accepted; changing speed also clears any non-goal speech already playing or queued. At 1×, routine speech never interrupts another clip and is spaced at least seven seconds apart; a shot callout needs an eighteen-second quiet interval. Shot kick effects are limited to one in three attempts with an eight-second minimum interval and are silent above 1×. Crowd and referee effects remain independent of speech.
+
+A goal can replace an obsolete phrase, but allows an already-playing player name to finish, drops the old queued shot phrase, and follows with the goal reaction. A player's spoken name cannot repeat within ten seconds. The scheduler uses wall-clock time and has no effect on match outcomes or simulation RNG. Regression checks cover all fast speeds, clearing speech on a speed change, uninterrupted names, duplicate suppression and reduced shot sounds.

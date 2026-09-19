@@ -1,0 +1,277 @@
+{
+  "source": "OriginalCD/data1.cab / Executable-English/sfx",
+  "sounds": [
+    {
+      "name": "mg_vmail.wav",
+      "sha256": "43240f653dd823849429a0d64a0ace34bdd825b8be90097c021327d6cf10826b"
+    },
+    {
+      "name": "mg_video.wav",
+      "sha256": "08d3763388d13c427679fc387486bedc218963706b57904c57f726d755d5b656"
+    },
+    {
+      "name": "mt_Whishort.wav",
+      "sha256": "c90ea93ccbb2513385ab5df81869e07fbfe528f5e5b2c2db957d88b889e36285"
+    },
+    {
+      "name": "mt_bigboo.wav",
+      "sha256": "8dd277912020e5d1eb9f9b49a3158a04a9ff84d5decf9a91e28fad4a07f0ad63"
+    },
+    {
+      "name": "bs_catering.wav",
+      "sha256": "fa11574ebd5350af5b991ffab3ae2fa951c97a5d708b2d108207102dc7d6f819"
+    },
+    {
+      "name": "sq_indtraining.wav",
+      "sha256": "a23d5ef20390bf75423ccab143c0eb5268ed2c95f3b6bd0fa872d070ab274c8d"
+    },
+    {
+      "name": "sq_newspaper.wav",
+      "sha256": "23f5c0bc116ef86d91a8f82f7ba5d8bf452f6c03b2f15e7b27a6940a92034ea5"
+    },
+    {
+      "name": "mt_Whis3.wav",
+      "sha256": "9635b1e902a686eb62c574e5faf5c7eede142f2bed217e366de3735f4fa89b11"
+    },
+    {
+      "name": "tr_currentnegs.wav",
+      "sha256": "b143c86d00f3202ac30c489320bf716da1e7e56da13ee0fd29aedfe936b6779f"
+    },
+    {
+      "name": "rm_manager.wav",
+      "sha256": "a908bf73268405df36da340bf2b513a80ddc8617cb4b20153496b69fbcc56baf"
+    },
+    {
+      "name": "mg_teamlist.wav",
+      "sha256": "e5ea73f41ec707e43df7bdf9b7343d8d8b33b7191c8668418bfb4e8331e146b6"
+    },
+    {
+      "name": "fl_status.wav",
+      "sha256": "a3c153dfe7b848673fc30bbe3275d09483e784afcd193dd494104f10898e4ff7"
+    },
+    {
+      "name": "mg_printer.wav",
+      "sha256": "d147667c5a89aaccb706b66fcffd2b23a2660b86a98680ec5e5f28bf98e3fc15"
+    },
+    {
+      "name": "rm_carpark.wav",
+      "sha256": "577f16ff0fbd15571b06635b782e2221b74a7f92b43b670378a062fec89dca0a"
+    },
+    {
+      "name": "rm_transfers.wav",
+      "sha256": "7e6e2bee705055b5caccd01306d36077fcf85c0ae00abe42429b3b0072451bcd"
+    },
+    {
+      "name": "background.wav",
+      "sha256": "8cc0c43900f40ad46640d4db9421a307dde81cb9506d614fe57bd8913ed847f7"
+    },
+    {
+      "name": "ch_trophy.wav",
+      "sha256": "c9fac03d4f02b10efe52f4581127a15f610d512bdeb81422b5c81a79258c0358"
+    },
+    {
+      "name": "mg_mobile.wav",
+      "sha256": "c0259c8344e9e83b7936d4ec44673b71a656097e94146f5917f873a84f195d42"
+    },
+    {
+      "name": "mg_scrapbook.wav",
+      "sha256": "257f61ccff8fe97fb973fc47d0f70dac108da797b98d8c8edbe78be95773c4c0"
+    },
+    {
+      "name": "bs_ticketprice.wav",
+      "sha256": "b91d338ad8aa071f95c505444dc148796cfc8ffaa31f7e722345350f7b88e04a"
+    },
+    {
+      "name": "mt_passing.wav",
+      "sha256": "ffe0b0b129c1c9549727a8c4ea21e457c1689b48578cad7d451270c3a09e7c87"
+    },
+    {
+      "name": "mt_littleooh.wav",
+      "sha256": "98df5e2c5f504b870e9a4a7494edeaf38116fa72f7405223671b0023d6f87416"
+    },
+    {
+      "name": "sq_tunnel.wav",
+      "sha256": "6035f99dd128c7f11470b7f9050da0a445fd719d5e36838767c7cc6caab9c0b2"
+    },
+    {
+      "name": "ch_badprogress.wav",
+      "sha256": "92c07dc62df9b4a555d21b1d55b82f234ab8e9d332193d6381c04d1875ed176a"
+    },
+    {
+      "name": "bs_accounts.wav",
+      "sha256": "55cf39a2a0d6a40de45857d4c0f3bcfbc6cacc4967a709eb4bf20d85c6be998b"
+    },
+    {
+      "name": "mg_fixturelist.wav",
+      "sha256": "7816bda8a5e9261637acddc70ee5e005bf45b78d843fed273891ade3f6115229"
+    },
+    {
+      "name": "ch_goodprogress.wav",
+      "sha256": "c3680e97f8d0c4f665b7784b790f9c1b49268da499d5f036066594faaca63ada"
+    },
+    {
+      "name": "tr_search.wav",
+      "sha256": "7a5310d263a01c7c827e222772350868ecbb0094b6cfd616119ca15836c57931"
+    },
+    {
+      "name": "mt_littlecheer.wav",
+      "sha256": "5c744e76017e0c5aeec74139466f43fbadb3cfb45acfad99856e81a1276dd7f6"
+    },
+    {
+      "name": "mg_filing.wav",
+      "sha256": "b0896512b5b6a3bb806df4f7129ceb9e777612cbd3dcb5fc4ecf8b51dd0ea19f"
+    },
+    {
+      "name": "mt_littleaah.wav",
+      "sha256": "aa5a6edfb26b8ea6db9acfc133b484e1d0dfdf3cd54af6cf0094aa94503ff792"
+    },
+    {
+      "name": "tr_shortlist.wav",
+      "sha256": "5360a39b8094179d6e111a39f678a55efd9a7c298c55284a64f4b883b209ae7a"
+    },
+    {
+      "name": "bs_advertising.wav",
+      "sha256": "ceb113032cf3fac70079532fa3e1e59dc32546f3d53d8ab48aa8b2c89840aa25"
+    },
+    {
+      "name": "bs_raisecash.wav",
+      "sha256": "087f2787809ac542b35ab9f7dfb61927e48d4104c80603620b0795073578787d"
+    },
+    {
+      "name": "mt_bigcheer.wav",
+      "sha256": "d015542c97b1a7e40b655e274224aaa5c9d6ec5feb9083b4c46cc95b6993d1f0"
+    },
+    {
+      "name": "mt_bigooh.wav",
+      "sha256": "e8d6782d2ed261eac3e6c1e9f159882317efa383108e7eb6099e156bf5a8df3a"
+    },
+    {
+      "name": "bs_sponsor.wav",
+      "sha256": "79e9a620eb55119ecb58ad6368ffcf5eb6a2fe74ca85d3445b5765e4f25c300a"
+    },
+    {
+      "name": "sq_teamtraining.wav",
+      "sha256": "242d3279174bc488e49ae0895292a0e4578cece43d7f9a72c6c0637bd04b2e8e"
+    },
+    {
+      "name": "rm_business.wav",
+      "sha256": "a397faff2e2abd39a7173bea2f7026363801c3e835f1ca08d0491503779261c3"
+    },
+    {
+      "name": "rm_chairman.wav",
+      "sha256": "e11584ddbb41082fae4c3b625fbe6468859be0a51f5f3607b7a7b2860bb4c3a5"
+    },
+    {
+      "name": "bs_acceptsponsor.wav",
+      "sha256": "dc87d7a5bb3ae58fa44def439d7f58d1699ff68a64c69c5469fc8253ea28d29d"
+    },
+    {
+      "name": "st_stadium.wav",
+      "sha256": "1ee362c1a9a9a7c17b260b8317a78c119356361c62e8449d32b61cc12d98d64c"
+    },
+    {
+      "name": "sq_viewopposition.wav",
+      "sha256": "48847df0b4f7df620f8039556c33211a7b2bd8678e816a1f306a8e995e7b74f5"
+    },
+    {
+      "name": "mg_newspaper.wav",
+      "sha256": "23f5c0bc116ef86d91a8f82f7ba5d8bf452f6c03b2f15e7b27a6940a92034ea5"
+    },
+    {
+      "name": "mg_email.wav",
+      "sha256": "2904984e13f8e476adb1926617fc954c06bb7c86cb46e64e1ed93c915130607f"
+    },
+    {
+      "name": "rm_data.wav",
+      "sha256": "38a9dd2f7b6a6482c9d1148d6363b47e9358d02d0cfed68d6c949716b9d87761"
+    },
+    {
+      "name": "mt_littlejeer.wav",
+      "sha256": "06dcc41bfa7d95d9873c11875fe167fb7e7b8e0977c3c60d6277adc0e7835986"
+    },
+    {
+      "name": "sq_chalk.wav",
+      "sha256": "ff89343d67e4c12d14ef89ed098d833338c0eccd55deb8841dc25ef9ef598f34"
+    },
+    {
+      "name": "bs_merchandise.wav",
+      "sha256": "756d63b67fd56f19de1c9c3168d06743bea0fa523aeaf473f744dff07e3496f3"
+    },
+    {
+      "name": "rm_squad.wav",
+      "sha256": "351d2c277eecf12c68766ebe0820abbbc5f9a408ebbd58c3642f2d37078f9de0"
+    },
+    {
+      "name": "mt_bigjeer.wav",
+      "sha256": "6c54cc9dd83b548ac1c3554dc8c4bf9041304d5a6190057b3fc1350184122271"
+    },
+    {
+      "name": "mt_bigaah.wav",
+      "sha256": "79e44b250fe25d74521681ecc8c493879ca8006bbea0e500760af21d2e178655"
+    },
+    {
+      "name": "rm_match.wav",
+      "sha256": "91eb8929224147b21e6505b9629adf86328544fb0b644d4d87f0d59e80b936ce"
+    },
+    {
+      "name": "fl_help.wav",
+      "sha256": "756d63b67fd56f19de1c9c3168d06743bea0fa523aeaf473f744dff07e3496f3"
+    },
+    {
+      "name": "mt_kicking.wav",
+      "sha256": "e2e41aea9b1d6f854ce4f4b2f584bc8174fd6c173dc90da439e4968e67fb14bd"
+    },
+    {
+      "name": "ch_averageprogress.wav",
+      "sha256": "740274044d6d88bde49c28dd299c7fe037e1a184804d5d6435176f7a38c75f0e"
+    },
+    {
+      "name": "mt_littleboo.wav",
+      "sha256": "b5fe2e875787c8fad167e4bc020c8ac9b1c24fe9ec08c507b4f47b961261762b"
+    },
+    {
+      "name": "tr_loan.wav",
+      "sha256": "a4db02ee67b5a84b973c6f2d153a050631e60acd6e50130067df737f34cfd94d"
+    },
+    {
+      "name": "st_buildings.wav",
+      "sha256": "b12dd82bbb6e0dbbb788110820d292bf9f546761250266228e15bf9d5c8a0ac2"
+    },
+    {
+      "name": "rm_stadium.wav",
+      "sha256": "21bfa7f9908877a6b805696e51df51db20a65645505f496ced78850f1760e773"
+    },
+    {
+      "name": "tr_sell.wav",
+      "sha256": "3cfab01884e20c11a8389a3a5ca493b2959130f6cb5197070da13137554b4343"
+    },
+    {
+      "name": "mt_Whislong.wav",
+      "sha256": "6f9de6979a33f7092e7a5d83808445f0d93ee45bc26f2a7f6d8378d0bc2e86dd"
+    },
+    {
+      "name": "mg_television.wav",
+      "sha256": "01ce56e48e16ff0cd24756102053da7b5176555d0abeab2b64df735d6286182f"
+    },
+    {
+      "name": "sq_teamselect.wav",
+      "sha256": "2a9973eeb4e41dcbe2b09c87a801a2ea4f8fd5d3874b06652c8dddcd6f4ec750"
+    },
+    {
+      "name": "sq_advancedtactics.wav",
+      "sha256": "b8671d8cd62f32d84b915a5167da93bcb26ab67d73ac8ef3c534413949620d12"
+    },
+    {
+      "name": "sq_whiteboard.wav",
+      "sha256": "8dfb24dc0bf73a775e392efb91429b3112cff492605901a02985c182b4573e59"
+    },
+    {
+      "name": "sq_firstaid.wav",
+      "sha256": "8a0f88705ce8c947b31caa621cc44c2f06628c86abc9cb98038fa63fb4e0cd2b"
+    },
+    {
+      "name": "mt_bigroar.wav",
+      "sha256": "b1d645192191bd806203c7601706e1a376e325493160adfa986274c5431c4db5"
+    }
+  ]
+}

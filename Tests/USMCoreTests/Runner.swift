@@ -1,0 +1,71 @@
+import Foundation
+// A dependency-free test harness so verification also works with Command Line Tools.
+var failures=0
+func XCTAssertTrue(_ value:Bool,file:StaticString=#filePath,line:UInt=#line) { if !value { failures += 1;print("FAIL \(file):\(line): expected true") } }
+func XCTAssertFalse(_ value:Bool,file:StaticString=#filePath,line:UInt=#line) { XCTAssertTrue(!value,file:file,line:line) }
+func XCTAssertEqual<T:Equatable>(_ a:T,_ b:T,file:StaticString=#filePath,line:UInt=#line) { if a != b { failures += 1;print("FAIL \(file):\(line): values differ") } }
+func XCTAssertNotEqual<T:Equatable>(_ a:T,_ b:T,file:StaticString=#filePath,line:UInt=#line) { XCTAssertTrue(a != b,file:file,line:line) }
+func XCTAssertNil<T>(_ a:T?,file:StaticString=#filePath,line:UInt=#line) { XCTAssertTrue(a==nil,file:file,line:line) }
+struct MissingValue:Error {}
+func XCTUnwrap<T>(_ value:T?) throws -> T { guard let value=value else { throw MissingValue() };return value }
+func XCTAssertThrowsError<T>(_ expression:@autoclosure () throws -> T,file:StaticString=#filePath,line:UInt=#line) { do { _=try expression();failures += 1;print("FAIL \(file):\(line): expected error") } catch {} }
+@main struct Runner {
+    static func main() {
+        let t=CareerTests()
+        let tests:[(String,() throws -> Void)]=[
+            ("Keeper and discipline regression",t.testKeeperAndDisciplineRegression),
+            ("Negotiation reply completion without calendar",t.testNegotiationRepliesWithoutCalendar),
+            ("Closed negotiations clear the following week",t.testClosedNegotiationsAreClearedTheFollowingWeek),
+            ("Stand tier appearance and roof changes",t.testStandAppearanceAndRoofPreviewRules),
+            ("Teletext scorers and form",t.testTeletextScorersAndForm),
+            ("Named formation library",t.testNamedFormationLibrary),
+            ("Own player market controls",t.testOwnPlayerMarketControls),
+            ("Player ages, retirement and youth rollover",t.testPlayerAgesAndYouthRollover),
+            ("Commentary pacing and duplicate names",t.testCommentaryPacingAndNames),
+            ("Visible free kicks and corners",t.testVisibleSetPieceRestarts),
+            ("Visible pace and shooting quality",t.testVisiblePaceAndShootingQuality),
+            ("Fluid movement and contested corners",t.testFluidMovementAndContestedCorners),
+            ("Legacy birth date recovery",t.testLegacyBirthDateRecovery),
+            ("Potential and match experience",t.testPotentialAndExperience),
+            ("Complete domestic cup career",t.testCompleteCupCareer),
+            ("Legacy training migration and discipline",t.testLegacyTrainingMigrationAndDiscipline),
+            ("Transfer clauses and finance",t.testTransferClausesAndFinance),
+            ("New state validation and legacy saves",t.testNewStateSaveValidation),
+            ("Cup calendar and trophies",t.testCupCalendarAndTrophies),
+            ("Replay and queued substitutions",t.testReplayCardsAndQueuedChanges),
+            ("Stand closure and specification",t.testStandClosureAndSpecification),
+            ("Custom tactics and migration",t.testCustomTacticsAndMigration),
+            ("Negotiation stages and final veto",t.testNegotiationStagesAndFinalVeto),
+            ("Staff, training, scouting and commerce",t.testStaffTrainingScoutingAndCommercial),
+            ("Squad swaps and selected bench",t.testSquadSwapAndBenchPersistence),
+            ("Live commit barrier and tactical changes",t.testUnfinishedMatchCannotCommitAndMidMatchChangesMatter),
+            ("Ground construction, movement and save",t.testGroundConstructionPlacementAndPersistence),
+            ("Stand upgrades and demolition",t.testStandUpgradeAndDemolition),
+            ("Live spatial match and half-time",t.testLiveMatchPossessionAndHalfTime),
+            ("Live substitutions and tactics",t.testLiveSubstitutionsAndTactics),
+            ("Live save and speed parity",t.testLiveSaveResumeAndSpeedParity),
+            ("Recovered records",t.testRecoveredDatabase),
+            ("Double round robin",t.testScheduleEveryPairHomeAndAway),
+            ("Odd league byes",t.testOddSizedLeagueHasByesWithoutDuplicateMatches),
+            ("Injured players excluded",t.testLineupExcludesInjuredAndHasKeeper),
+            ("Determinism and accounting",t.testDeterministicSimulationAndAccounting),
+            ("Delayed transfer",t.testTransferIsDelayedAndConservesPlayers),
+            ("Rejected transfer",t.testLowOfferRejected),
+            ("Construction timeline",t.testConstructionAndLoanFreeAccounting),
+            ("Save and RNG round trip",t.testSaveRoundTripPreservesRNGAndPendingOffer),
+            ("Invalid save rejected",t.testInvalidSaveRejected),
+            ("Full season and promotion",t.testFullSeasonAndPromotion),
+            ("Tactics affect simulation",t.testTacticsInfluenceResults)
+        ]
+        var ran=0
+        for (name,test) in tests {
+            if let filter=ProcessInfo.processInfo.environment["USM_TEST_FILTER"],!name.localizedCaseInsensitiveContains(filter){continue}
+            ran+=1
+            let before=failures
+            do { try test() } catch { failures += 1;print("FAIL \(name): \(error)") }
+            print("\(failures==before ? "PASS":"FAIL") \(name)")
+        }
+        print("\(ran) scenarios, \(failures) failures")
+        exit(failures==0 ? 0:1)
+    }
+}

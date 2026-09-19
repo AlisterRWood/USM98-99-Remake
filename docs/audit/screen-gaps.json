@@ -1,0 +1,436 @@
+[
+  {
+    "help_id": 0,
+    "screen": "STADIUM SCREEN",
+    "status": "Partial",
+    "current_code": "GroundManagement.swift / GroundScene.swift",
+    "gap": "Editable ground exists; recover original stand/building types, layout density, upkeep and original room links."
+  },
+  {
+    "help_id": 1,
+    "screen": "MESSAGES PANEL",
+    "status": "Missing",
+    "current_code": "ContentView.swift: InboxView",
+    "gap": "One generic inbox replaces the end-period panel; add separate email, voicemail, newspaper, private phone and negotiations queues, unread states, Return/Exit."
+  },
+  {
+    "help_id": 2,
+    "screen": "BUSINESS ROOM",
+    "status": "Partial",
+    "current_code": "Rooms.swift / ClubViews.swift: BusinessView",
+    "gap": "Room exists but several objects alias one generic page; provide six distinct commercial screens."
+  },
+  {
+    "help_id": 3,
+    "screen": "ACCOUNTS",
+    "status": "Partial",
+    "current_code": "ClubViews.swift: BusinessView",
+    "gap": "Ledger exists; add weekly/yearly income and cost categories, operating profit excluding transfers/interest, finances link and print."
+  },
+  {
+    "help_id": 4,
+    "screen": "FINANCE",
+    "status": "Partial",
+    "current_code": "ClubViews.swift: BusinessView",
+    "gap": "Flat \u00a31m borrowing is a substitute; add assessed loans, repayments, overdrafts, grants with obligations, flotation and shareholder distributions."
+  },
+  {
+    "help_id": 5,
+    "screen": "SQUAD ROOM",
+    "status": "Partial",
+    "current_code": "Rooms.swift",
+    "gap": "Correct TV to opposition, green board to formation editor, folders to advanced tactics; restore complete object map."
+  },
+  {
+    "help_id": 6,
+    "screen": "TEAM SELECTION",
+    "status": "Partial",
+    "current_code": "SquadTable.swift / FootballViews.swift",
+    "gap": "Swaps and skill columns exist; add temporary stat views versus permanent reserve sorting, skill bars, performance-record toggle, injury sorting, competition-specific bench size, last match/meeting."
+  },
+  {
+    "help_id": 11,
+    "screen": "TEAM TALK",
+    "status": "Partial",
+    "current_code": "Models.swift: Tactics / FootballViews.swift",
+    "gap": "Add captain, four set-piece takers, win bonus, individual arrows/man marking, offside trap, custom formation, selected move and set piece; wire each into match rules."
+  },
+  {
+    "help_id": 18,
+    "screen": "VIEW OPPOSITION",
+    "status": "Missing",
+    "current_code": "Rooms.swift currently routes to Competitions",
+    "gap": "Dedicated upcoming opponent squad/form, previous/next fixture and player drill-down required."
+  },
+  {
+    "help_id": 19,
+    "screen": "CHAIRMAN'S OFFICE",
+    "status": "Partial",
+    "current_code": "Rooms.swift: BoardView",
+    "gap": "Replace fixed top-half text and one confidence score with match/season objectives, four evaluation sources, graphs and trophies."
+  },
+  {
+    "help_id": 20,
+    "screen": "SPONSORS",
+    "status": "Partial",
+    "current_code": "ClubViews.swift: BusinessView",
+    "gap": "Three immediately replaceable tiers are a substitute; generate timed offers with acceptance/rejection, current contract, expiry and reputation-sensitive availability."
+  },
+  {
+    "help_id": 21,
+    "screen": "ADVERTISING",
+    "status": "Missing",
+    "current_code": "No advertising model",
+    "gap": "Separate stadium-board and programme/magazine inventory, offers/current contracts, league-season versus home-cup terms, assistant delegation, visible accepted brands."
+  },
+  {
+    "help_id": 22,
+    "screen": "TICKET PRICING",
+    "status": "Partial",
+    "current_code": "BusinessView / Simulation.swift",
+    "gap": "One price only; add stand-type league/friendly, cup and season-ticket tariffs, school tickets, stand/whole-ground attendance and revenue charts."
+  },
+  {
+    "help_id": 23,
+    "screen": "STADIUM IMPROVEMENT",
+    "status": "Partial",
+    "current_code": "Ground.swift / GroundManagement.swift",
+    "gap": "Add selected-stand close-up, capacity choice, terrace/seated, cover, boxes, corner prerequisites, maintenance, condition, project preview and reduced available capacity."
+  },
+  {
+    "help_id": 25,
+    "screen": "IMPROVE BUILDINGS",
+    "status": "Partial",
+    "current_code": "Ground.swift / GroundManagement.swift",
+    "gap": "Placement exists; restore building catalogue, multiple placement preview/right-click confirm/cancel, original types and building statistics."
+  },
+  {
+    "help_id": 28,
+    "screen": "TROPHY CABINET",
+    "status": "Missing",
+    "current_code": "ArchiveView is generic season history",
+    "gap": "Competition winners/runners-up and accumulated trophy history."
+  },
+  {
+    "help_id": 29,
+    "screen": "EVALUATION",
+    "status": "Partial",
+    "current_code": "BoardView / Models.swift",
+    "gap": "Chairman, financial, fans and player/staff ratings with explanatory evaluations; coach-mode exceptions."
+  },
+  {
+    "help_id": 30,
+    "screen": "EVALUATION GRAPHS",
+    "status": "Missing",
+    "current_code": "No evaluation timeline UI",
+    "gap": "Toggleable historical lines for all evaluation sources."
+  },
+  {
+    "help_id": 33,
+    "screen": "MERCHANDISING",
+    "status": "Partial",
+    "current_code": "BusinessView / Simulation.swift",
+    "gap": "One merchandise price; add SKU assortment by outlet, unit costs/prices, quantity/revenue/profit, all/type filters, item graphs and inflation."
+  },
+  {
+    "help_id": 34,
+    "screen": "CATERING",
+    "status": "Missing",
+    "current_code": "Catering routes to BusinessView",
+    "gap": "Distinct food/drink catalogue, outlet-type views, per-item prices/costs, sales and profit histories."
+  },
+  {
+    "help_id": 36,
+    "screen": "INDIVIDUAL TRAINING",
+    "status": "Partial",
+    "current_code": "Rooms.swift: IndividualTrainingView",
+    "gap": "Per-player focus is a substitute; assign named coach to player skill cells, per-player intensity, workloads, boredom, age development and recovery rules."
+  },
+  {
+    "help_id": 37,
+    "screen": "TEAM TRAINING",
+    "status": "Partial",
+    "current_code": "FootballViews.swift: TrainingView",
+    "gap": "Decorative week and global focus only; editable day/time grid, activity palette, locked match slots, individual/free-time periods, assistant proposals and training camps."
+  },
+  {
+    "help_id": 41,
+    "screen": "COACHES/SCOUTS",
+    "status": "Missing",
+    "current_code": "Rooms.swift: CoachingView",
+    "gap": "Anonymous upgrade levels are not staff; implement named available/employed coaches and scouts, quality, specialty, wages, term, morale, hire/renew/fire/payout; six coach cap."
+  },
+  {
+    "help_id": 45,
+    "screen": "INJURIES",
+    "status": "Partial",
+    "current_code": "TrainingView / Simulation.swift",
+    "gap": "Weeks-only injuries; add diagnosis, major/minor classification, unavailable recovery phase and fitness rehabilitation."
+  },
+  {
+    "help_id": 46,
+    "screen": "ARRANGE FRIENDLIES",
+    "status": "Missing",
+    "current_code": "No friendly scheduler",
+    "gap": "Up to four pre-season friendlies, date/home-away/opponent selection and same-division restriction."
+  },
+  {
+    "help_id": 47,
+    "screen": "MOBILE PHONE",
+    "status": "Missing",
+    "current_code": "Phone currently routes to transfer office",
+    "gap": "Private mobile: rig offer, transfer bung, simulated bet and bookmaker messages; fictional random acceptance, costs, consequences and uncertain outcome."
+  },
+  {
+    "help_id": 48,
+    "screen": "FIXTURE LIST",
+    "status": "Partial",
+    "current_code": "ClubViews.swift: CompetitionsView",
+    "gap": "Fixtures list exists; add opponent drill-down, past reports, league-position/nationality indicators, other teams, friendlies and print."
+  },
+  {
+    "help_id": 56,
+    "screen": "MANAGER'S OFFICE",
+    "status": "Partial",
+    "current_code": "Rooms.swift",
+    "gap": "Restore distinct filing, voicemail, email, newspaper, Sierratext, video, printer, fixtures, mobile and scrapbook routes."
+  },
+  {
+    "help_id": 57,
+    "screen": "PLAYER FILE",
+    "status": "Partial",
+    "current_code": "SquadTable.swift / playerDetail",
+    "gap": "Separate Contract, Skills, Appearances and Discipline views, including listing state, weeks remaining, assists, awards, ratings, bans."
+  },
+  {
+    "help_id": 58,
+    "screen": "PLAYER INFORMATION",
+    "status": "Partial",
+    "current_code": "FootballViews.swift: playerDetail",
+    "gap": "Add verified positions/age/nationality, aspirations, bonuses, competition history, transfer history, negotiated renewal, listing/fee, not-for-sale and fast sale."
+  },
+  {
+    "help_id": 61,
+    "screen": "CLUB FILE",
+    "status": "Partial",
+    "current_code": "CompetitionsView / ArchiveView",
+    "gap": "Club data, current and historic records, progression graph, transfer records and other clubs."
+  },
+  {
+    "help_id": 63,
+    "screen": "MANAGER FILE",
+    "status": "Missing",
+    "current_code": "Only manager name and season summary",
+    "gap": "Manager career record across clubs and seasons."
+  },
+  {
+    "help_id": 64,
+    "screen": "HISTORY FILE",
+    "status": "Partial",
+    "current_code": "ArchiveView",
+    "gap": "Full club records and honours, updated by competition and season."
+  },
+  {
+    "help_id": 66,
+    "screen": "PLAYER SEARCH",
+    "status": "Partial",
+    "current_code": "FootballViews.swift: TransfersView",
+    "gap": "Only name/role/own-player filters, top 100; add league/division, contracts/listed/short, squad status, age/value ranges, each skill range, scout suitability, sorting, full paging, reset and detail/skill views."
+  },
+  {
+    "help_id": 69,
+    "screen": "CURRENT NEGOTIATIONS",
+    "status": "Partial",
+    "current_code": "TransfersView / Models.swift: Offer",
+    "gap": "Pending rows only; separate in/out lists with negotiation status, Reply/Drop, readable history and club/player responses."
+  },
+  {
+    "help_id": 70,
+    "screen": "SELLING PLAYERS",
+    "status": "Partial",
+    "current_code": "Models.swift: bid / Simulation.swift",
+    "gap": "85%-value delayed sale is a substitute; listing/unlisting/asking fee, unsolicited bids, no-sale flag, counters, player refusal and final confirmation."
+  },
+  {
+    "help_id": 71,
+    "screen": "LOANING PLAYERS OUT",
+    "status": "Missing",
+    "current_code": "No loan model",
+    "gap": "Loan listing, incoming requests, agreed duration, wage payer, experience/morale and scheduled return."
+  },
+  {
+    "help_id": 72,
+    "screen": "SHORTLIST",
+    "status": "Missing",
+    "current_code": "Search heading says shortlist but no saved shortlist",
+    "gap": "Persistent shortlist, comparison to own squad, skill charts/sorting, competitor alerts, named scout assignment/removal, reports after time and uncertain recommendations."
+  },
+  {
+    "help_id": 73,
+    "screen": "NEWSPAPER",
+    "status": "Missing",
+    "current_code": "Generic inbox/report only",
+    "gap": "Newspaper sections with unread article markers; reports, transfers, supporters, other news; direct results/tables."
+  },
+  {
+    "help_id": 74,
+    "screen": "NEWSPAPER ARTICLES",
+    "status": "Missing",
+    "current_code": "No article reader",
+    "gap": "Next article and Add to scrapbook."
+  },
+  {
+    "help_id": 75,
+    "screen": "SCRAPBOOK",
+    "status": "Missing",
+    "current_code": "No scrapbook",
+    "gap": "Saved articles, reread and delete."
+  },
+  {
+    "help_id": 78,
+    "screen": "EMAIL",
+    "status": "Partial",
+    "current_code": "InboxView",
+    "gap": "Dedicated external email queue, unread/next/return, archive/save/delete."
+  },
+  {
+    "help_id": 80,
+    "screen": "VOICEMAIL",
+    "status": "Partial",
+    "current_code": "InboxView",
+    "gap": "Dedicated internal voicemail queue with action links and return to period panel."
+  },
+  {
+    "help_id": 81,
+    "screen": "VIDEO HIGHLIGHTS",
+    "status": "Missing",
+    "current_code": "No match recording model",
+    "gap": "Recorded match highlights, playback and deletion; replay must use recorded simulation state."
+  },
+  {
+    "help_id": 82,
+    "screen": "START MATCH TUNNEL",
+    "status": "Partial",
+    "current_code": "MatchView: MatchChoice",
+    "gap": "Watch/instant/cancel exist as sheet; restore an illustrated tunnel with the three exits."
+  },
+  {
+    "help_id": 85,
+    "screen": "ADVANCED TACTICS",
+    "status": "Missing",
+    "current_code": "LiveMatch formation heuristics only",
+    "gap": "Attack/defend positions for 12 zones plus five restarts (34 states), trails, copy/paste, move/set-piece sequences, pass/dribble/move/wait/shoot, undo, save/load and opposition overlay."
+  },
+  {
+    "help_id": 87,
+    "screen": "FORMATION EDITOR",
+    "status": "Missing",
+    "current_code": "Four fixed formation choices",
+    "gap": "Move individual slots, no overlap, new/load/save-as, protected stock formations, undo/all, preferred-role comparison."
+  },
+  {
+    "help_id": 89,
+    "screen": "FILE",
+    "status": "Partial",
+    "current_code": "App.swift / ContentView.swift",
+    "gap": "Native save/import and sound controls exist; add file room, configuration, commentary/tooltips/messages toggles, autosave cadence, save browser, resign/restart/player control."
+  },
+  {
+    "help_id": 90,
+    "screen": "TRANSFERS ROOM",
+    "status": "Partial",
+    "current_code": "Rooms.swift",
+    "gap": "Three aliases replace full transfer room; binoculars search, current-negotiation folder, shortlist/scouting, selling bin and loan trays must be distinct."
+  },
+  {
+    "help_id": 91,
+    "screen": "SIERRATEXT",
+    "status": "Partial",
+    "current_code": "CompetitionsView",
+    "gap": "Add paged Sierratext: domestic/European fixtures, results, all/home/away tables, form, awards, national squads, transfers, attendance, referees, scorers/assists/discipline."
+  },
+  {
+    "help_id": 92,
+    "screen": "SELECT OPTION",
+    "status": "Partial",
+    "current_code": "ContentView.swift: TitleScreen",
+    "gap": "New/load exist; add Manager/Coach modes with real business automation."
+  },
+  {
+    "help_id": 93,
+    "screen": "HOW MANY PLAYERS",
+    "status": "Missing",
+    "current_code": "Single Career manager",
+    "gap": "Local alternating turns for 1\u20138 managers; coordinated time advance and matches."
+  },
+  {
+    "help_id": 94,
+    "screen": "STARTING CASH",
+    "status": "Partial",
+    "current_code": "CareerSetup",
+    "gap": "Starting cash exists; confirm original difficulty amounts instead of invented presets."
+  },
+  {
+    "help_id": 96,
+    "screen": "SELECT LEAGUE",
+    "status": "Partial",
+    "current_code": "CareerSetup / database.json",
+    "gap": "Seven-country CD data is used; recover named competition definitions and verify all original clubs/external player pools."
+  },
+  {
+    "help_id": 97,
+    "screen": "SELECT TEAM",
+    "status": "Partial",
+    "current_code": "CareerSetup",
+    "gap": "Club/division choice exists; add multiplayer repetition and competition names."
+  },
+  {
+    "help_id": 98,
+    "screen": "MANAGERS NAME",
+    "status": "Partial",
+    "current_code": "CareerSetup",
+    "gap": "Name entry exists; prior-name history absent."
+  },
+  {
+    "help_id": 103,
+    "screen": "END OF SEASON",
+    "status": "Partial",
+    "current_code": "Simulation.swift",
+    "gap": "Season rollover/promotion exists; add full competition awards, other-league summaries, job applications, dismissal and manager contract logic."
+  },
+  {
+    "help_id": 104,
+    "screen": "SAVE",
+    "status": "Partial",
+    "current_code": "App.swift: SaveStore",
+    "gap": "Native saves exist; named in-game save slots with date/team/multiplayer metadata and delete."
+  },
+  {
+    "help_id": 105,
+    "screen": "LOAD",
+    "status": "Partial",
+    "current_code": "App.swift: importSave",
+    "gap": "Native file picker works; replace with skinned save browser, preserving system picker only for optional external import."
+  },
+  {
+    "help_id": 110,
+    "screen": "PRINTING",
+    "status": "Missing",
+    "current_code": "No print routes",
+    "gap": "Team lists, other teams, fixtures, shortlist, accounts; macOS print/PDF is appropriate after in-game selection."
+  },
+  {
+    "help_id": 111,
+    "screen": "BUYING PLAYERS",
+    "status": "Partial",
+    "current_code": "Models.swift: Offer / Simulation.swift",
+    "gap": "Replace one-week fee/wage threshold with enquiry, club counters, player interest/terms, bonuses, swaps and appearance clauses, deadlines/timeouts plus README final veto."
+  },
+  {
+    "help_id": 112,
+    "screen": "MATCH SCREEN",
+    "status": "Partial",
+    "current_code": "LiveMatch.swift / MatchView.swift",
+    "gap": "Live watch/speed/pause/substitution exists; add 1.5x, normal/overhead toggle, names/numbers/team scope, individual match instructions, dead-ball subs, replay/store, fouls/offside/cards/injuries/ratings and full-time statistics."
+  }
+]

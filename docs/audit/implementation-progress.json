@@ -1,0 +1,834 @@
+{
+  "build": "0.3.2",
+  "date": "2026-09-19",
+  "note": "Implementation evidence, not certification of original behavior. Baseline screen-gaps.json is retained unchanged.",
+  "topics": [
+    {
+      "help_id": 0,
+      "screen": "STADIUM SCREEN",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Dynamic plots, placement, relocation, rotation, stand preview, seats/roof/boxes, maintenance and construction capacity closure.",
+      "remaining": "Draft placement confirmation, detailed original constraints, advertising geometry and visual building fidelity.",
+      "evidence": [
+        "Sources/USMCore/Ground.swift",
+        "Sources/USMCore/StandDevelopment.swift",
+        "Sources/USMApp/GroundManagement.swift",
+        "Sources/USMApp/Stadium.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 1,
+      "screen": "MESSAGES PANEL",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Message folders, read state, articles and persistent scrapbook; negotiation reply navigation.",
+      "remaining": "Original return/exit sequence, fax/audio presentation, more event types and full editorial histories.",
+      "evidence": [
+        "Sources/USMApp/ClubScreens.swift",
+        "Sources/USMCore/ClubWorld.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 2,
+      "screen": "BUSINESS ROOM",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Room thumbnails and object-specific hotspots route to the new management screens.",
+      "remaining": "Complete interactive parity check against every original room; multimedia interaction polish.",
+      "evidence": [
+        "Sources/USMApp/Rooms.swift",
+        "Sources/USMApp/ContentView.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 3,
+      "screen": "ACCOUNTS",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Period/season ledger, bank, interest, overdraft, flotation, shareholders and conditional stadium grants.",
+      "remaining": "Original financial calibration, complete printing and more detailed banking negotiations.",
+      "evidence": [
+        "Sources/USMCore/Finance.swift",
+        "Sources/USMApp/ClassicUI.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 4,
+      "screen": "FINANCE",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Period/season ledger, bank, interest, overdraft, flotation, shareholders and conditional stadium grants.",
+      "remaining": "Original financial calibration, complete printing and more detailed banking negotiations.",
+      "evidence": [
+        "Sources/USMCore/Finance.swift",
+        "Sources/USMApp/ClassicUI.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 5,
+      "screen": "SQUAD ROOM",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Room thumbnails and object-specific hotspots route to the new management screens.",
+      "remaining": "Complete interactive parity check against every original room; multimedia interaction polish.",
+      "evidence": [
+        "Sources/USMApp/Rooms.swift",
+        "Sources/USMApp/ContentView.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 6,
+      "screen": "TEAM SELECTION",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Compact skill table; right-click pickup and left-click swap, bench/reserves, player record and availability guards.",
+      "remaining": "Exact imported position flags, competition-specific selection rules and original individual instructions.",
+      "evidence": [
+        "Sources/USMApp/FootballViews.swift",
+        "Sources/USMCore/Models.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 11,
+      "screen": "TEAM TALK",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Captain, takers, bonus, trap, custom formation and 34 situation position maps affect live play; copy/paste/reset/undo.",
+      "remaining": "Multi-step action routines, named libraries, trails, full man-marking and original move/set-piece behavior.",
+      "evidence": [
+        "Sources/USMApp/TacticalScreens.swift",
+        "Sources/USMCore/TacticalPlans.swift",
+        "Sources/USMCore/LiveMatch.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 18,
+      "screen": "VIEW OPPOSITION",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Next opponent, formation and squad report.",
+      "remaining": "Deeper tactical scouting and historic opponent analysis.",
+      "evidence": [
+        "Sources/USMApp/ClubScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 19,
+      "screen": "CHAIRMAN'S OFFICE",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Room thumbnails and object-specific hotspots route to the new management screens.",
+      "remaining": "Complete interactive parity check against every original room; multimedia interaction polish.",
+      "evidence": [
+        "Sources/USMApp/Rooms.swift",
+        "Sources/USMApp/ContentView.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 20,
+      "screen": "SPONSORS",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Separate sponsor/advert contracts, terms, weekly payments and expiry.",
+      "remaining": "Timed varied offers, rejection/delegation, league/cup terms and rendering brands on physical boards.",
+      "evidence": [
+        "Sources/USMCore/Management.swift",
+        "Sources/USMApp/ClassicUI.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 21,
+      "screen": "ADVERTISING",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Separate sponsor/advert contracts, terms, weekly payments and expiry.",
+      "remaining": "Timed varied offers, rejection/delegation, league/cup terms and rendering brands on physical boards.",
+      "evidence": [
+        "Sources/USMCore/Management.swift",
+        "Sources/USMApp/ClassicUI.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 22,
+      "screen": "TICKET PRICING",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Terrace, seat, cup, friendly, season, box and school pricing controls feed gate receipts.",
+      "remaining": "Original demand calibration and historical graphs.",
+      "evidence": [
+        "Sources/USMCore/Finance.swift",
+        "Sources/USMApp/ClassicUI.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 23,
+      "screen": "STADIUM IMPROVEMENT",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Dynamic plots, placement, relocation, rotation, stand preview, seats/roof/boxes, maintenance and construction capacity closure.",
+      "remaining": "Draft placement confirmation, detailed original constraints, advertising geometry and visual building fidelity.",
+      "evidence": [
+        "Sources/USMCore/Ground.swift",
+        "Sources/USMCore/StandDevelopment.swift",
+        "Sources/USMApp/GroundManagement.swift",
+        "Sources/USMApp/Stadium.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 25,
+      "screen": "IMPROVE BUILDINGS",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Dynamic plots, placement, relocation, rotation, stand preview, seats/roof/boxes, maintenance and construction capacity closure.",
+      "remaining": "Draft placement confirmation, detailed original constraints, advertising geometry and visual building fidelity.",
+      "evidence": [
+        "Sources/USMCore/Ground.swift",
+        "Sources/USMCore/StandDevelopment.swift",
+        "Sources/USMApp/GroundManagement.swift",
+        "Sources/USMApp/Stadium.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 28,
+      "screen": "TROPHY CABINET",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "League fixtures, domestic knockout draws/byes, trophies, full season, promotion/relegation and rollover.",
+      "remaining": "Europe, extra domestic cups, accurate era schedules/rules, playoffs, transfer deadlines and full manager history.",
+      "evidence": [
+        "Sources/USMCore/Competitions.swift",
+        "Sources/USMCore/Simulation.swift",
+        "Sources/USMApp/ClubScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 29,
+      "screen": "EVALUATION",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Four evaluations and history graphs, dismissal and job applications.",
+      "remaining": "Full manager/career records and original board thresholds/consequences.",
+      "evidence": [
+        "Sources/USMCore/ClubWorld.swift",
+        "Sources/USMApp/ClubScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 30,
+      "screen": "EVALUATION GRAPHS",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Four evaluations and history graphs, dismissal and job applications.",
+      "remaining": "Full manager/career records and original board thresholds/consequences.",
+      "evidence": [
+        "Sources/USMCore/ClubWorld.swift",
+        "Sources/USMApp/ClubScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 33,
+      "screen": "MERCHANDISING",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Individual merchandise and food/drink costs/prices, outlet groups, demand, sales/profit and ledger settlement.",
+      "remaining": "Per-outlet assortments, original charts and demand calibration.",
+      "evidence": [
+        "Sources/USMCore/Management.swift",
+        "Sources/USMApp/ClassicUI.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 34,
+      "screen": "CATERING",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Individual merchandise and food/drink costs/prices, outlet groups, demand, sales/profit and ledger settlement.",
+      "remaining": "Per-outlet assortments, original charts and demand calibration.",
+      "evidence": [
+        "Sources/USMCore/Management.swift",
+        "Sources/USMApp/ClassicUI.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 36,
+      "screen": "INDIVIDUAL TRAINING",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Named coach/scout hiring, wages, renewals/dismissal, personal assignments, workload, timetable and camps; legacy migration. Player lifecycle: imported/estimated DOB, annual ageing, individual development potential, training/appearance growth, veteran decline, retirement and minimum-20 all-club youth intake.",
+      "remaining": "Verify original staff bytes/wages; exact training activities, morale/boredom curves, squad-specific camps.",
+      "evidence": [
+        "Sources/USMCore/Management.swift",
+        "Sources/USMApp/ClassicUI.swift",
+        "Sources/USMCore/PlayerLifecycle.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 37,
+      "screen": "TEAM TRAINING",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Named coach/scout hiring, wages, renewals/dismissal, personal assignments, workload, timetable and camps; legacy migration. Player lifecycle: imported/estimated DOB, annual ageing, individual development potential, training/appearance growth, veteran decline, retirement and minimum-20 all-club youth intake.",
+      "remaining": "Verify original staff bytes/wages; exact training activities, morale/boredom curves, squad-specific camps.",
+      "evidence": [
+        "Sources/USMCore/Management.swift",
+        "Sources/USMApp/ClassicUI.swift",
+        "Sources/USMCore/PlayerLifecycle.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 41,
+      "screen": "COACHES/SCOUTS",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Named coach/scout hiring, wages, renewals/dismissal, personal assignments, workload, timetable and camps; legacy migration. Player lifecycle: imported/estimated DOB, annual ageing, individual development potential, training/appearance growth, veteran decline, retirement and minimum-20 all-club youth intake.",
+      "remaining": "Verify original staff bytes/wages; exact training activities, morale/boredom curves, squad-specific camps.",
+      "evidence": [
+        "Sources/USMCore/Management.swift",
+        "Sources/USMApp/ClassicUI.swift",
+        "Sources/USMCore/PlayerLifecycle.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 45,
+      "screen": "INJURIES",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Injury list/recovery, suspensions and selection exclusions.",
+      "remaining": "In-match injuries, richer medical prognosis and competition-specific discipline.",
+      "evidence": [
+        "Sources/USMCore/MatchRules.swift",
+        "Sources/USMApp/ClubScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 46,
+      "screen": "ARRANGE FRIENDLIES",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Arrange a friendly without colliding with existing fixture slots.",
+      "remaining": "Opponent scheduling/fees, full home/away negotiation and authentic calendar.",
+      "evidence": [
+        "Sources/USMCore/Competitions.swift",
+        "Sources/USMApp/ClubScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 47,
+      "screen": "MOBILE PHONE",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Fictional match approach, transfer bung and bookmaker with costs, refusal/exposure/fines and limited effects.",
+      "remaining": "Original probability, timing and consequence calibration.",
+      "evidence": [
+        "Sources/USMCore/ClubWorld.swift",
+        "Sources/USMApp/ClubScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 48,
+      "screen": "FIXTURE LIST",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "League fixtures, domestic knockout draws/byes, trophies, full season, promotion/relegation and rollover.",
+      "remaining": "Europe, extra domestic cups, accurate era schedules/rules, playoffs, transfer deadlines and full manager history.",
+      "evidence": [
+        "Sources/USMCore/Competitions.swift",
+        "Sources/USMCore/Simulation.swift",
+        "Sources/USMApp/ClubScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 56,
+      "screen": "MANAGER'S OFFICE",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Room thumbnails and object-specific hotspots route to the new management screens.",
+      "remaining": "Complete interactive parity check against every original room; multimedia interaction polish.",
+      "evidence": [
+        "Sources/USMApp/Rooms.swift",
+        "Sources/USMApp/ContentView.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 57,
+      "screen": "PLAYER FILE",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Record, skill grid, approximate age, wage/contract, fitness/morale/goals, shortlist and negotiation links. Player lifecycle: imported/estimated DOB, annual ageing, individual development potential, training/appearance growth, veteran decline, retirement and minimum-20 all-club youth intake.",
+      "remaining": "Nationality/full position decoding, verify remaining missing birth dates, full player history and original trait depth.",
+      "evidence": [
+        "Sources/USMApp/PlayerRecord.swift",
+        "Sources/USMCore/Models.swift",
+        "Sources/USMCore/PlayerLifecycle.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 58,
+      "screen": "PLAYER INFORMATION",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Record, skill grid, approximate age, wage/contract, fitness/morale/goals, shortlist and negotiation links. Player lifecycle: imported/estimated DOB, annual ageing, individual development potential, training/appearance growth, veteran decline, retirement and minimum-20 all-club youth intake.",
+      "remaining": "Nationality/full position decoding, verify remaining missing birth dates, full player history and original trait depth.",
+      "evidence": [
+        "Sources/USMApp/PlayerRecord.swift",
+        "Sources/USMCore/Models.swift",
+        "Sources/USMCore/PlayerLifecycle.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 61,
+      "screen": "CLUB FILE",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Club selector, nickname, stadium, league position, manager and results/record links.",
+      "remaining": "Full historic seasons/records and all competition honors.",
+      "evidence": [
+        "Sources/USMApp/ClubViews.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 63,
+      "screen": "MANAGER FILE",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Four evaluations and history graphs, dismissal and job applications.",
+      "remaining": "Full manager/career records and original board thresholds/consequences.",
+      "evidence": [
+        "Sources/USMCore/ClubWorld.swift",
+        "Sources/USMApp/ClubScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 64,
+      "screen": "HISTORY FILE",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Four evaluations and history graphs, dismissal and job applications.",
+      "remaining": "Full manager/career records and original board thresholds/consequences.",
+      "evidence": [
+        "Sources/USMCore/ClubWorld.swift",
+        "Sources/USMApp/ClubScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 66,
+      "screen": "PLAYER SEARCH",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Full-database pagination, many filters, nine skill minimums, shortlist and delayed scout reports.",
+      "remaining": "Nationality, first/reserve filter, per-skill maximums, potential/youth reports and competitor alerts.",
+      "evidence": [
+        "Sources/USMApp/TransferScreens.swift",
+        "Sources/USMCore/Management.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 69,
+      "screen": "CURRENT NEGOTIATIONS",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Persistent staged negotiations, incoming listed bids, renewals, final approval, swap/appearance/bonus clauses, loans and return.",
+      "remaining": "AI market activity, configurable loans/wage split, all original sales/free-agent cases and varied interest/patience.",
+      "evidence": [
+        "Sources/USMCore/Management.swift",
+        "Sources/USMCore/ContractTerms.swift",
+        "Sources/USMApp/TransferScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 70,
+      "screen": "SELLING PLAYERS",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Persistent staged negotiations, incoming listed bids, renewals, final approval, swap/appearance/bonus clauses, loans and return.",
+      "remaining": "AI market activity, configurable loans/wage split, all original sales/free-agent cases and varied interest/patience.",
+      "evidence": [
+        "Sources/USMCore/Management.swift",
+        "Sources/USMCore/ContractTerms.swift",
+        "Sources/USMApp/TransferScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 71,
+      "screen": "LOANING PLAYERS OUT",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Persistent staged negotiations, incoming listed bids, renewals, final approval, swap/appearance/bonus clauses, loans and return.",
+      "remaining": "AI market activity, configurable loans/wage split, all original sales/free-agent cases and varied interest/patience.",
+      "evidence": [
+        "Sources/USMCore/Management.swift",
+        "Sources/USMCore/ContractTerms.swift",
+        "Sources/USMApp/TransferScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 72,
+      "screen": "SHORTLIST",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Full-database pagination, many filters, nine skill minimums, shortlist and delayed scout reports.",
+      "remaining": "Nationality, first/reserve filter, per-skill maximums, potential/youth reports and competitor alerts.",
+      "evidence": [
+        "Sources/USMApp/TransferScreens.swift",
+        "Sources/USMCore/Management.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 73,
+      "screen": "NEWSPAPER",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Message folders, read state, articles and persistent scrapbook; negotiation reply navigation.",
+      "remaining": "Original return/exit sequence, fax/audio presentation, more event types and full editorial histories.",
+      "evidence": [
+        "Sources/USMApp/ClubScreens.swift",
+        "Sources/USMCore/ClubWorld.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 74,
+      "screen": "NEWSPAPER ARTICLES",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Message folders, read state, articles and persistent scrapbook; negotiation reply navigation.",
+      "remaining": "Original return/exit sequence, fax/audio presentation, more event types and full editorial histories.",
+      "evidence": [
+        "Sources/USMApp/ClubScreens.swift",
+        "Sources/USMCore/ClubWorld.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 75,
+      "screen": "SCRAPBOOK",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Message folders, read state, articles and persistent scrapbook; negotiation reply navigation.",
+      "remaining": "Original return/exit sequence, fax/audio presentation, more event types and full editorial histories.",
+      "evidence": [
+        "Sources/USMApp/ClubScreens.swift",
+        "Sources/USMCore/ClubWorld.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 78,
+      "screen": "EMAIL",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Message folders, read state, articles and persistent scrapbook; negotiation reply navigation.",
+      "remaining": "Original return/exit sequence, fax/audio presentation, more event types and full editorial histories.",
+      "evidence": [
+        "Sources/USMApp/ClubScreens.swift",
+        "Sources/USMCore/ClubWorld.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 80,
+      "screen": "VOICEMAIL",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Message folders, read state, articles and persistent scrapbook; negotiation reply navigation.",
+      "remaining": "Original return/exit sequence, fax/audio presentation, more event types and full editorial histories.",
+      "evidence": [
+        "Sources/USMApp/ClubScreens.swift",
+        "Sources/USMCore/ClubWorld.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 81,
+      "screen": "VIDEO HIGHLIGHTS",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Live side-on play, speed/pause, tactics, queued substitutions, offside/fouls/cards, takers, penalties, in-match replay and full-time report. Original CD commentary/name clips, whistle events, visible held-ball free kicks/corners with takers and setup movement, stronger pace differences, earlier shooting and forward carries.",
+      "remaining": "Extra time, direct reds/in-match injury, original animation/camera fidelity, replay library and audio event mapping.",
+      "evidence": [
+        "Sources/USMCore/LiveMatch.swift",
+        "Sources/USMCore/MatchRules.swift",
+        "Sources/USMApp/MatchView.swift",
+        "Sources/USMApp/Audio.swift",
+        "tools/import_commentary.py"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 82,
+      "screen": "START MATCH TUNNEL",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Live side-on play, speed/pause, tactics, queued substitutions, offside/fouls/cards, takers, penalties, in-match replay and full-time report. Original CD commentary/name clips, whistle events, visible held-ball free kicks/corners with takers and setup movement, stronger pace differences, earlier shooting and forward carries.",
+      "remaining": "Extra time, direct reds/in-match injury, original animation/camera fidelity, replay library and audio event mapping.",
+      "evidence": [
+        "Sources/USMCore/LiveMatch.swift",
+        "Sources/USMCore/MatchRules.swift",
+        "Sources/USMApp/MatchView.swift",
+        "Sources/USMApp/Audio.swift",
+        "tools/import_commentary.py"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 85,
+      "screen": "ADVANCED TACTICS",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Captain, takers, bonus, trap, custom formation and 34 situation position maps affect live play; copy/paste/reset/undo.",
+      "remaining": "Multi-step action routines, named libraries, trails, full man-marking and original move/set-piece behavior.",
+      "evidence": [
+        "Sources/USMApp/TacticalScreens.swift",
+        "Sources/USMCore/TacticalPlans.swift",
+        "Sources/USMCore/LiveMatch.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 87,
+      "screen": "FORMATION EDITOR",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Captain, takers, bonus, trap, custom formation and 34 situation position maps affect live play; copy/paste/reset/undo.",
+      "remaining": "Multi-step action routines, named libraries, trails, full man-marking and original move/set-piece behavior.",
+      "evidence": [
+        "Sources/USMApp/TacticalScreens.swift",
+        "Sources/USMCore/TacticalPlans.swift",
+        "Sources/USMCore/LiveMatch.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 89,
+      "screen": "FILE",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Native save slots, import/export, old-save compatibility, music/effects, help and club summary printing. FILE car, HELP tile and right-aligned month/day calendar.",
+      "remaining": "Windows-save decoding, full original help and financial printing.",
+      "evidence": [
+        "Sources/USMApp/FileScreens.swift",
+        "Sources/USMCore/Simulation.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 90,
+      "screen": "TRANSFERS ROOM",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Room thumbnails and object-specific hotspots route to the new management screens.",
+      "remaining": "Complete interactive parity check against every original room; multimedia interaction polish.",
+      "evidence": [
+        "Sources/USMApp/Rooms.swift",
+        "Sources/USMApp/ContentView.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 91,
+      "screen": "SIERRATEXT",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "League and fixture/result browsing through the competition screen.",
+      "remaining": "Original SierraText presentation and complete live information panels.",
+      "evidence": [
+        "Sources/USMApp/ClubScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 92,
+      "screen": "SELECT OPTION",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "New-game Manager/Coach choice; basic AI financial delegation and access controls. FILE car, HELP tile and right-aligned month/day calendar.",
+      "remaining": "Complete original Coach-mode delegation and selection restrictions.",
+      "evidence": [
+        "Sources/USMApp/ContentView.swift",
+        "Sources/USMCore/ClubWorld.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 93,
+      "screen": "HOW MANY PLAYERS",
+      "baseline_status": "Missing",
+      "implementation_status": "not_implemented",
+      "implemented": "Single-manager careers only.",
+      "remaining": "Shared-world alternating 1\u20138 managers remains unimplemented.",
+      "evidence": [],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 94,
+      "screen": "STARTING CASH",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Bounded four-step wizard, name validation, country/division/club/funds and career creation.",
+      "remaining": "Original multiple-manager setup depends on local multiplayer; exact era starting funds need calibration.",
+      "evidence": [
+        "Sources/USMApp/ContentView.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 96,
+      "screen": "SELECT LEAGUE",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Bounded four-step wizard, name validation, country/division/club/funds and career creation.",
+      "remaining": "Original multiple-manager setup depends on local multiplayer; exact era starting funds need calibration.",
+      "evidence": [
+        "Sources/USMApp/ContentView.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 97,
+      "screen": "SELECT TEAM",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Bounded four-step wizard, name validation, country/division/club/funds and career creation.",
+      "remaining": "Original multiple-manager setup depends on local multiplayer; exact era starting funds need calibration.",
+      "evidence": [
+        "Sources/USMApp/ContentView.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 98,
+      "screen": "MANAGERS NAME",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Bounded four-step wizard, name validation, country/division/club/funds and career creation.",
+      "remaining": "Original multiple-manager setup depends on local multiplayer; exact era starting funds need calibration.",
+      "evidence": [
+        "Sources/USMApp/ContentView.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 103,
+      "screen": "END OF SEASON",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "League fixtures, domestic knockout draws/byes, trophies, full season, promotion/relegation and rollover. Player lifecycle: imported/estimated DOB, annual ageing, individual development potential, training/appearance growth, veteran decline, retirement and minimum-20 all-club youth intake.",
+      "remaining": "Europe, extra domestic cups, accurate era schedules/rules, playoffs, transfer deadlines and full manager history.",
+      "evidence": [
+        "Sources/USMCore/Competitions.swift",
+        "Sources/USMCore/Simulation.swift",
+        "Sources/USMApp/ClubScreens.swift",
+        "Sources/USMCore/PlayerLifecycle.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 104,
+      "screen": "SAVE",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Native save slots, import/export, old-save compatibility, music/effects, help and club summary printing.",
+      "remaining": "Windows-save decoding, full original help and financial printing.",
+      "evidence": [
+        "Sources/USMApp/FileScreens.swift",
+        "Sources/USMCore/Simulation.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 105,
+      "screen": "LOAD",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Native save slots, import/export, old-save compatibility, music/effects, help and club summary printing.",
+      "remaining": "Windows-save decoding, full original help and financial printing.",
+      "evidence": [
+        "Sources/USMApp/FileScreens.swift",
+        "Sources/USMCore/Simulation.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 110,
+      "screen": "PRINTING",
+      "baseline_status": "Missing",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Native save slots, import/export, old-save compatibility, music/effects, help and club summary printing.",
+      "remaining": "Windows-save decoding, full original help and financial printing.",
+      "evidence": [
+        "Sources/USMApp/FileScreens.swift",
+        "Sources/USMCore/Simulation.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 111,
+      "screen": "BUYING PLAYERS",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Persistent staged negotiations, incoming listed bids, renewals, final approval, swap/appearance/bonus clauses, loans and return.",
+      "remaining": "AI market activity, configurable loans/wage split, all original sales/free-agent cases and varied interest/patience.",
+      "evidence": [
+        "Sources/USMCore/Management.swift",
+        "Sources/USMCore/ContractTerms.swift",
+        "Sources/USMApp/TransferScreens.swift"
+      ],
+      "original_parity_certified": false
+    },
+    {
+      "help_id": 112,
+      "screen": "MATCH SCREEN",
+      "baseline_status": "Partial",
+      "implementation_status": "reconstructed_partial",
+      "implemented": "Live side-on play, speed/pause, tactics, queued substitutions, offside/fouls/cards, takers, penalties, in-match replay and full-time report. Original CD commentary/name clips, whistle events, visible held-ball free kicks/corners with takers and setup movement, stronger pace differences, earlier shooting and forward carries.",
+      "remaining": "Extra time, direct reds/in-match injury, original animation/camera fidelity, replay library and audio event mapping.",
+      "evidence": [
+        "Sources/USMCore/LiveMatch.swift",
+        "Sources/USMCore/MatchRules.swift",
+        "Sources/USMApp/MatchView.swift",
+        "Sources/USMApp/Audio.swift",
+        "tools/import_commentary.py"
+      ],
+      "original_parity_certified": false
+    }
+  ]
+}

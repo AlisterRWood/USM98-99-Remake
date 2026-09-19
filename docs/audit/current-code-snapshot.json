@@ -1,0 +1,62 @@
+[
+  {
+    "path": "Sources/USMApp/App.swift",
+    "sha256": "d7a24b86e1d799fe0095bb6b78bf5f2d8b0504e4f863e8deb7a565ba2dd824ef"
+  },
+  {
+    "path": "Sources/USMApp/Audio.swift",
+    "sha256": "ee7fa545f416ecb347da1eb2faa9924a40ebdede61bc721e52716a46e5f0f67b"
+  },
+  {
+    "path": "Sources/USMApp/ClubViews.swift",
+    "sha256": "d92a8c4ba1411ce16a90a6a82e6ff849825352867f58733833f37da0b1464cea"
+  },
+  {
+    "path": "Sources/USMApp/ContentView.swift",
+    "sha256": "685c23c80600bc17baf51b62b3eebdfe9a270572bdca40a93485e7756e2bdc89"
+  },
+  {
+    "path": "Sources/USMApp/FootballViews.swift",
+    "sha256": "3154700f24f1b7ee1e0061ed11b1c6b20234266b05d2505346be4a4530f1b76c"
+  },
+  {
+    "path": "Sources/USMApp/GroundManagement.swift",
+    "sha256": "33723d477d875e723437edbd34e4d0d23e54a41f7fa23b3ee84c34fc0a39e4cb"
+  },
+  {
+    "path": "Sources/USMApp/GroundScene.swift",
+    "sha256": "c48c28b09184d52b1c96d09aa10641a450b7da6b895aaa50835ed64188c69e7b"
+  },
+  {
+    "path": "Sources/USMApp/MatchView.swift",
+    "sha256": "59b888544e927361936ffb68bcef32882b201234bd7a260ab0daf8c412c6b927"
+  },
+  {
+    "path": "Sources/USMApp/Rooms.swift",
+    "sha256": "6209e0674c7b5a9cd305e6c7900cbcf038453d9b59842a347a7ca35891bc77ce"
+  },
+  {
+    "path": "Sources/USMApp/SquadTable.swift",
+    "sha256": "9c4b0d2b5193c423a9a0a5516c7d35b5a07a448c3f10468412fa7f7c2a9cfaca"
+  },
+  {
+    "path": "Sources/USMApp/Stadium.swift",
+    "sha256": "3c32dea16828445595d5283cb8c45533936f0c4f8c0284ec85f6291fc9c191b5"
+  },
+  {
+    "path": "Sources/USMCore/Ground.swift",
+    "sha256": "f6aba0eeef4f7f56890aa8639f20c8bdaa88b001ad8df30b63ee74e1d5052139"
+  },
+  {
+    "path": "Sources/USMCore/LiveMatch.swift",
+    "sha256": "008db9cef04d7f75a7cb5aec8f0cf62327e056ee900102d48a40f95a26d74d40"
+  },
+  {
+    "path": "Sources/USMCore/Models.swift",
+    "sha256": "315d64cc6a263ed872309e7860e6bfec1b2f55bd2fc25d2f0998f471adaa4d18"
+  },
+  {
+    "path": "Sources/USMCore/Simulation.swift",
+    "sha256": "1152df237d22fc03db3da6c9de93b070aa4c16615b39050177b3152686c2c49c"
+  }
+]

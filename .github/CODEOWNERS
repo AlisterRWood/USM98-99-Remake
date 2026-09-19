@@ -1,0 +1,9 @@
+# Default review ownership. Keep this file small and route feature ownership
+# through coordination/OWNERS.md so agents can claim individual files safely.
+* @AlisterRWood
+
+Sources/USMCore/ @AlisterRWood
+Sources/USMApp/ @AlisterRWood
+Tests/ @AlisterRWood
+tools/ @AlisterRWood
+docs/ @AlisterRWood
