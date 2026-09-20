@@ -14,7 +14,9 @@ struct PlayerRecord:View {
         VStack(spacing:15) {
             Text(player.name).font(.system(size:28,weight:.bold)).foregroundStyle(mint)
             Text(store.career.name(player.clubID)+" · "+player.position+" · Age "+(player.age(season:store.career.season).map(String.init) ?? "Unknown")).foregroundStyle(muted)
-            Text("Born "+player.dateOfBirth+((player.development?.estimatedBirthDate ?? false) ? " (estimated)":"")+" · "+player.potentialDescription).font(.caption).foregroundStyle(mint)
+            let external=player.clubID != store.career.clubID
+            let potential=external && store.career.completedScoutReport(for:player.id)==nil ? "Scout report required" : player.potentialDescription
+            Text("Born "+player.dateOfBirth+((player.development?.estimatedBirthDate ?? false) ? " (estimated)":"")+" · "+potential).font(.caption).foregroundStyle(mint)
             if !market {LazyVGrid(columns:Array(repeating:GridItem(.flexible()),count:3),spacing:15) {ForEach(0..<9,id:\.self) {i in VStack(alignment:.leading){HStack{Text(labels[i]);Spacer();Text("\(player.skills[i])").foregroundStyle(mint)};GeometryReader {g in ZStack(alignment:.leading){Rectangle().fill(.black.opacity(0.4));Rectangle().fill(crimson).frame(width:g.size.width*Double(player.skills[i])/100)}}.frame(height:8)}.padding(10).background(.black.opacity(0.15))}}
             } else {marketControls}
             let state=store.career.states[player.id]

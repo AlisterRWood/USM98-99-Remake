@@ -125,8 +125,8 @@ extension Career {
         return (attack,defence,midfield)
     }
     private mutating func simulate(_ f: Fixture,h:(Double,Double,Double),a:(Double,Double,Double),homeSquad:[Player],awaySquad:[Player]) -> MatchReport {
-        let homeRate=min(3.4,max(0.25,1.4+(h.0-a.1)/35))
-        let awayRate=min(3.1,max(0.2,1.05+(a.0-h.1)/35))
+        let homeRate=min(2.35,max(0.40,1.18+(h.0-a.1)/48))
+        let awayRate=min(2.15,max(0.35,0.95+(a.0-h.1)/48))
         var hg=0,ag=0,hs=0,as_=0
         var events=[MatchEvent(id:0,minute:0,text:"Kick-off. \(name(f.home)) get us underway.",homeScore:0,awayScore:0)]
         let homeChosen=f.home==clubID ? homeSquad.filter{lineup.contains($0.id)} : Array(homeSquad.sorted{$0.rating>$1.rating}.prefix(11))
@@ -136,7 +136,8 @@ extension Career {
                 let rate=home ? homeRate:awayRate
                 if rng.unit()<rate/13 {
                     if home { hs += 1 } else { as_ += 1 }
-                    let goal=rng.unit()<13/90.0
+                    let chanceQuality=home ? max(-0.02,min(0.025,(h.0-a.1)/900)) : max(-0.02,min(0.025,(a.0-h.1)/900))
+                    let goal=rng.unit() < 0.055+chanceQuality
                     let side=home ? homeChosen:awayChosen
                     let scorers=side.filter{$0.position != "GK"}.sorted{$0.skills[3]>$1.skills[3]}
                     let scorer=scorers.isEmpty ? nil:scorers[rng.int(0...min(4,scorers.count-1))]
@@ -198,19 +199,23 @@ extension Career {
     public mutating func nextSeason() {
         guard seasonFinished else { return }
         let finishedWeek=week
+        let recap=currentSeasonRecap
+        if seasonRecaps == nil { seasonRecaps=[] }
+        seasonRecaps!.removeAll { $0.season == recap.season }
+        seasonRecaps!.insert(recap, at: 0)
         let standing=table(),rank=(standing.firstIndex{$0.id==clubID} ?? 0)+1
         history.insert("Season \(season): \(club.league), position \(rank), \(standing.first{$0.id==clubID}?.points ?? 0) points",at:0)
         if let terms=management?.playerBonuses {
             let amount=terms.values.reduce(0){$0+(rank==1 ? $1.league:0)+(rank<=2 ? $1.promotion:0)}
             if amount>0 {transact("Season contract bonuses",-amount)}
         }
-        transact("Season prize money",max(100_000,(standing.count-rank+1)*180_000))
+        if recap.totalPrize > 0 { transact("Season prize money",recap.totalPrize) }
         var moves:[String:Int]=[:]
         for country in Set(clubs.map(\.country)).sorted() {
             let divisions=Set(clubs.filter{$0.country==country}.map(\.division)).sorted()
             for (upper,lower) in zip(divisions,divisions.dropFirst()) {
-                let up=table(league:"\(country) · Division \(upper+1)")
-                let down=table(league:"\(country) · Division \(lower+1)")
+                let up=table(league:CompetitionNames.league(country:country,division:upper))
+                let down=table(league:CompetitionNames.league(country:country,division:lower))
                 for c in up.suffix(2) { moves[c.id]=lower }
                 for c in down.prefix(2) { moves[c.id]=upper }
             }

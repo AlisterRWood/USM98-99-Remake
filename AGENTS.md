@@ -2,7 +2,51 @@
 
 Living document for humans and AI agents. It consolidates **current progress**, the **outstanding backlog**, **file ownership**, and **working conventions** so multiple agents can work in parallel without conflicting. Keep it in sync after every piece of work.
 
-Last verified build state: **2026-09-20** — `swift run -c release USMVerify` → **43 scenarios, 0 failures**.
+Last verified build state: **2026-09-20** — `swift run -c release USMVerify` → **54 scenarios, 0 failures**.
+
+# Agent instructions
+
+## Model routing
+
+Use subagents proactively.
+
+For each subtask, use the lowest-cost currently available model that can reliably complete the work. Do not hard-code model names or assume the parent model is the correct model.
+
+Escalate to stronger models only when complexity, ambiguity, repeated failures, architecture decisions, or risk justify the additional cost.
+
+For complex tasks:
+1. Determine the best implementation approach.
+2. Break the work into independent subtasks.
+3. Delegate each subtask to the cheapest capable model.
+4. Run independent work in parallel where useful.
+5. Review and integrate results.
+6. Build and test before considering the task complete.
+
+## Project-specific routing
+
+This is a SwiftUI game.
+
+Prefer inexpensive agents for:
+- repository exploration
+- locating Swift types/views
+- straightforward SwiftUI implementation
+- repetitive UI work
+- test creation
+- documentation
+- asset/reference investigation
+
+Escalate when necessary for:
+- game architecture
+- simulation architecture
+- complex state management
+- concurrency problems
+- difficult SwiftUI bugs
+- persistence/data-model changes affecting multiple systems
+- major refactoring
+
+Preserve existing architecture and coding conventions.
+
+Do not redesign working systems unless the requested change requires it.
 
 ## 1. What this project is
 
@@ -98,7 +142,7 @@ Implemented and persisted (details in `docs/IMPLEMENTATION-STATUS.md` — dated 
 - **Commerce/finance:** separate sponsor and pitch-board/programme contracts with weekly income + expiry; per-item merchandise and catering costs/prices/sales/profit; ticket classes (terrace/seat/cup/friendly/season/box/school); period/season accounts, interest, overdrafts, borrowing, flotation/shareholders, conditional stadium grants.
 - **Ground:** fully editable SceneKit stadium — plots, four stand positions + corners, stands (capacity bands, two/three-tier, seats/roof/boxes), construction with capacity closure during works, maintenance/condition, building catalogue (shops/cafés/car park etc.), placement/rotation/movement/demolition, paved surround, fixed isometric camera, surrounding town.
 - **Tactics:** captain, set-piece takers, win bonus, offside trap, draggable custom formation, 34 attack/defence situation maps + free-kick maps, copy/paste/reset/undo, named formation library saved in career.
-- **Match:** reconstructed live spatial engine (possession, movement, passing, interceptions, shots, saves, goals), offside, fouls, bookings, second-yellow dismissals, suspensions, corners/free kicks/penalties with visible setup + walls, held-ball takers, queued dead-ball substitutions, replay from recorded frames, 1×–16× speed, save/resume mid-match, full-time report, original CD commentary/player-name speech with pacing rules, whistle effects.
+- **Match:** reconstructed live spatial engine (possession, movement, passing, interceptions, shots, saves, goals), tactical action execution, delayed goalkeeper goal-kick distribution with opponent retreat, post-flight offside restarts, fouls, bookings, second-yellow dismissals, suspensions, corners/free kicks/penalties with visible setup + walls, held-ball takers, queued dead-ball substitutions, replay from recorded frames, 1×–16× speed, save/resume mid-match, full-time report, original CD commentary/player-name speech with pacing rules, whistle effects.
 - **Career/world:** seeded round-robin leagues across 7 countries, domestic knockout cups with draws/byes/shoot-outs, trophies, friendlies, promotion/relegation, rollover, board evaluations + history graphs, dismissal/job applications, Coach-mode financial delegation, fictional private phone (rig/bung/bet) with consequences, message folders (email/voicemail/newspaper), scrapbook, native save slots + import/export + club-summary printing.
 - **Player lifecycle (0.3.1):** imported/estimated DOB, annual ageing at 1 August, individual development ceilings/profiles, training/appearance growth, late-career decline, retirement, guaranteed minimum-20-squad youth intake at rollover with unique generated IDs.
 
@@ -122,7 +166,7 @@ Implemented and persisted (details in `docs/IMPLEMENTATION-STATUS.md` — dated 
 | 5 | Ground/commercial | Multi-placement draft + right-click confirm, corner/height constraints, per-outlet assortments, attendance histories, dynamic ad brands in match/ground, varied sponsor offers, cup-vs-league ad terms, building polish | `Ground.swift`, `StandDevelopment.swift`, `GroundScene.swift`, `GroundManagement.swift`, `Rooms.swift` (adverts) |
 | 6 | Staff/training | Verify original staff bytes/wage units/morale/specialty/scout cap, detailed original activities, workload/boredom/age curves, camp squad scoping | `Management.swift`, decode `COACH.DAT` |
 | 7 | Match/presentation | Original camera fidelity, richer player art, in-play injuries, direct reds, officiating/restarts, extra time, ratings, name/number options, saved replay library, full audio/commentary mapping | `LiveMatch.swift`, `MatchRules.swift`, `MatchView.swift`, `Audio.swift`, `CommentarySchedule.swift` |
-| 8 | World/UI | Message-panel return/exit + fax/video presentation, manager/player/club histories, trophies from all competitions, full help coverage, finance printing, Coach-mode parity, board/job rules | `ClubWorld.swift`, `ClubScreens.swift`, `FileScreens.swift`, `ContentView.swift` |
+| 8 | World/UI | Message-panel return/exit + fax/video presentation, manager/player/club histories, trophies from all competitions, full help coverage, finance printing, and board/job rules | `ClubWorld.swift`, `ClubScreens.swift`, `FileScreens.swift`, `ContentView.swift` |
 | 9 | Fidelity verification | Interactive comparison of every original menu control; historical roster validation beyond binary checks | across the board; QA documentation |
 
 ### 7b. Rebuild phases (from `docs/FIDELITY-AUDIT-AND-REBUILD-PLAN.md`)
@@ -136,7 +180,7 @@ The intended sequence is **phases 0–1 next (evidence/data → screen foundatio
 - **4 — Business:** separate ad/sponsor contracts, tickets, product/outlet data, accounts, banking.
 - **5 — Stadium:** stand detail editor, cover/boxes/corners, construction closure, upkeep/condition, full catalogue/placement.
 - **6 — Tactics/match:** Team Talk completeness, formations, advanced moves, offside/fouls/cards, stoppage subs, deterministic replay, match options incl. 1.5×.
-- **7 — Career parity:** Chairman/jobs, private-phone fiction, communications, Sierratext, records, cups/Europe, Coach mode, local multiplayer.
+- **7 — Career parity:** Chairman/jobs, private-phone fiction, communications, Sierratext, records, cups/Europe, and local multiplayer.
 - **8 — Fidelity calibration:** asset polish, match/economy balancing, accessibility, performance.
 
 Target screen composition for each fixed screen (Player Search, Negotiation fax, Team Training, Staff market, Individual Training, Stand inspection, Merchandise/Catering, Advertising, Team Talk, Team Data) is specified in the plan's resolution contract. Design tokens (ruby/cobalt/yellow variants) are proposed there for matching — **no lime-green accent** is the current target.
@@ -183,12 +227,14 @@ Stream A touches only tools/docs; streams B–H touch app code — assign B/G an
 9. **Keep USMCore view-independent** — UI must not reach into simulation state directly.
 10. **Keep docs in sync.** Source-of-truth docs: `IMPLEMENTATION-STATUS.md` (implemented), `SCREEN-MATRIX.md` + `audit/implementation-progress.json` (fidelity tracker), `FIDELITY-AUDIT-AND-REBUILD-PLAN.md` (plan), `RECONSTRUCTION.md` (format evidence), feature docs (`USABILITY-UPDATE-0.3.4.md`, `INTERFACE-AND-TRANSFERS-0.3.5.md`, `MATCH-AUDIO-UPDATE.md`). Do not edit the baseline audit (screen-gaps.json) as part of new work.
 11. **Coordinate writes.** Only one agent edits a hotspot file at a time; announce intent in this file or progress.md when a large multi-file change starts.
+12. **Use the living resume plan.** Read `PROJECT_PLAN.md` before starting work. It is the authoritative sequencing/checkpoint file for agents: update its current checkpoint before editing, and update its status, evidence, tests, unresolved risks, next step, and dated change log before releasing claims. `implementation-progress.json` remains the per-topic evidence tracker; `PROJECT_PLAN.md` remains the cross-cutting resume plan.
 
 ## 10. Documentation map
 
 | Doc | Content | Freshness |
 |---|---|---|
 | `AGENTS.md` (this) | Consolidated status + backlog + coordination | Maintain continuously |
+| `PROJECT_PLAN.md` | Living agent resume plan, phases, gates, ownership, and change log | Read before work; update after every work item |
 | `progress.md` | Chronological change log | Latest entries 2026-09-19 (storefront LED, stadium orientation) |
 | `README.md` | User-facing play/building guide | Current |
 | `docs/IMPLEMENTATION-STATUS.md` | Implemented work + 9 remaining items | 0.3 line (19 Sep 2026) |

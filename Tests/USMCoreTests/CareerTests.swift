@@ -2,6 +2,55 @@ import Foundation
 import USMCore
 
 final class CareerTests {
+    func testDefensiveShapeRespondsToFormationAndTactics() throws {
+        let c=try career(),fixture=try XCTUnwrap(c.nextFixture),threat=FieldPoint(78,34)
+        var compact=LiveMatch(career:c,fixture:fixture)
+        var expansive=LiveMatch(career:c,fixture:fixture)
+        compact.awayTactics.formation="5-3-2";compact.awayTactics.mentality="Defensive";compact.awayTactics.tackling="Cautious";compact.awayTactics.offsideTrap=false
+        expansive.awayTactics.formation="4-3-3";expansive.awayTactics.mentality="Attacking";expansive.awayTactics.tackling="Hard";expansive.awayTactics.offsideTrap=true
+        let defender=try XCTUnwrap(compact.players.first{$0.side==1 && $0.slot==3})
+        let compactPress=compact.defensiveShapeTarget(for:defender,side:1,threat:threat,rank:0)
+        let compactCover=compact.defensiveShapeTarget(for:defender,side:1,threat:threat,rank:1)
+        let expansivePress=expansive.defensiveShapeTarget(for:defender,side:1,threat:threat,rank:0)
+        let expansiveCover=expansive.defensiveShapeTarget(for:defender,side:1,threat:threat,rank:1)
+        XCTAssertTrue(compactPress.distance(to:threat)>expansivePress.distance(to:threat))
+        XCTAssertTrue(compactCover.distance(to:threat)>compactPress.distance(to:threat))
+        XCTAssertTrue(expansiveCover.distance(to:threat)>expansivePress.distance(to:threat))
+        compact.startHalf();expansive.startHalf();compact.activeSetPlay=nil;expansive.activeSetPlay=nil
+        let carrier=try XCTUnwrap(compact.players.first{$0.side==0 && $0.slot==10})
+        compact.owner=carrier.id;expansive.owner=carrier.id;compact.ball=threat;expansive.ball=threat
+        compact.players[compact.players.firstIndex{$0.id==carrier.id}!].point=threat
+        expansive.players[expansive.players.firstIndex{$0.id==carrier.id}!].point=threat
+        for _ in 0..<12 {compact.step();expansive.step()}
+        let compactDefenders=compact.players.filter{$0.side==1 && $0.onPitch && $0.slot != 0}
+        let expansiveDefenders=expansive.players.filter{$0.side==1 && $0.onPitch && $0.slot != 0}
+        let compactAverage=compactDefenders.map{$0.point.distance(to:threat)}.reduce(0,+)/Double(compactDefenders.count)
+        let expansiveAverage=expansiveDefenders.map{$0.point.distance(to:threat)}.reduce(0,+)/Double(expansiveDefenders.count)
+        XCTAssertTrue(abs(compactAverage-expansiveAverage)>0.05)
+    }
+    func testOffsideRequiresClearLineMargin() throws {
+        let c=try career(),fixture=try XCTUnwrap(c.nextFixture)
+        var m=LiveMatch(career:c,fixture:fixture);m.startHalf()
+        let passerIndex=try XCTUnwrap(m.players.firstIndex{$0.side==0 && $0.slot==8})
+        let receiverIndex=try XCTUnwrap(m.players.firstIndex{$0.side==0 && $0.slot==10})
+        m.players[passerIndex].point=FieldPoint(45,34);m.ball=m.players[passerIndex].point;m.owner=m.players[passerIndex].id
+        for i in m.players.indices where m.players[i].side==1 && m.players[i].slot != 0 {m.players[i].point=FieldPoint(60,34)}
+        m.players[receiverIndex].point=FieldPoint(61,34)
+        XCTAssertFalse(m.offsideCandidate(passerIndex:passerIndex,receiverIndex:receiverIndex))
+        m.players[receiverIndex].point=FieldPoint(64,34)
+        XCTAssertTrue(m.offsideCandidate(passerIndex:passerIndex,receiverIndex:receiverIndex))
+    }
+    func testScoringCalibration() throws {
+        let c=try career(),fixture=try XCTUnwrap(c.nextFixture)
+        var total=0,maxGoals=0
+        for seed in 1...12 {
+            var match=LiveMatch(career:c,fixture:fixture);match.rng=RNG(seed:UInt64(seed));match.finishInstantly()
+            let goals=match.homeGoals+match.awayGoals;total += goals;maxGoals=max(maxGoals,goals)
+        }
+        XCTAssertTrue(total >= 4)
+        XCTAssertTrue(total <= 90)
+        XCTAssertTrue(maxGoals <= 14)
+    }
     func testKeeperAndDisciplineRegression() throws {
         let c=try career(),fixture=try XCTUnwrap(c.nextFixture)
         var m=LiveMatch(career:c,fixture:fixture);m.startHalf();m.activeSetPlay=nil
@@ -61,6 +110,20 @@ final class CareerTests {
         let own=c.squad.first{$0.id != p.id}!,buyer=c.clubs.first{$0.id != c.clubID}!.id
         var sale=Negotiation(player:own,week:0,selling:true);sale.clubID=buyer;sale.stage="Final review";c.management!.negotiations.append(sale)
         let cash=c.cash;XCTAssertTrue(c.acceptTransfer(sale.id));XCTAssertEqual(c.cash,cash+sale.fee);XCTAssertEqual(c.players.first{$0.id==own.id}?.clubID,buyer);XCTAssertFalse(c.acceptTransfer(sale.id))
+    }
+    func testNegotiationExpiryPatienceAndBorrowedExchangeGuards() throws {
+        var c=try career();c.cash=100_000_000
+        let target=try XCTUnwrap(c.players.first{$0.clubID != c.clubID})
+        XCTAssertTrue(c.enquire(target.id));let staleID=try XCTUnwrap(c.management?.negotiations.last?.id);c.management!.negotiations[c.management!.negotiations.count-1].stage="Club asking price";c.management!.negotiations[c.management!.negotiations.count-1].expires=0;c.management!.elapsed=1
+        XCTAssertFalse(c.submitTerms(staleID,fee:target.value,wage:target.wage,bonus:target.wage*4,years:3));XCTAssertEqual(c.management?.negotiations.last?.stage,"Expired")
+
+        var patient=Negotiation(player:target,week:c.managementState.elapsed);patient.stage="Player considering";patient.attempts=3+(target.rating%4);patient.expires=c.managementState.elapsed+5;patient.wage=1;patient.signingFee=0;c.management!.negotiations.append(patient)
+        XCTAssertTrue(c.reviewNegotiationReply(patient.id));XCTAssertEqual(c.management?.negotiations.last?.stage,"Rejected")
+
+        let borrowed=try XCTUnwrap(c.players.first{$0.clubID != c.clubID && $0.id != target.id}),incoming=try XCTUnwrap(c.players.first{$0.clubID != c.clubID && $0.id != target.id && $0.id != borrowed.id})
+        c.players[c.players.firstIndex{$0.id==borrowed.id}!].clubID=c.clubID;c.management!.loans.append(PlayerLoan(playerID:borrowed.id,ownerID:borrowed.clubID,returnWeek:c.managementState.elapsed+4,wageShare:100));
+        var exchange=Negotiation(player:incoming,week:c.managementState.elapsed);exchange.stage="Final review";exchange.fee=incoming.value;exchange.signingFee=0;exchange.swapPlayer=borrowed.id;c.management!.negotiations.append(exchange)
+        XCTAssertFalse(c.acceptTransfer(exchange.id));XCTAssertEqual(c.players.first{$0.id==borrowed.id}?.clubID,c.clubID)
     }
     func testClosedNegotiationsAreClearedTheFollowingWeek() throws {
         var c=try career();let player=try XCTUnwrap(c.players.first{$0.clubID != c.clubID})
@@ -134,6 +197,31 @@ final class CareerTests {
         while c.squad.count>16 {let id=c.squad.first{$0.id != borrowed.id}!.id;XCTAssertTrue(c.fastSell(id))}
         XCTAssertFalse(c.fastSell(c.squad.first{$0.id != borrowed.id}!.id))
         try SaveStore.save(c,to:url);_=try SaveStore.load(from:url)
+    }
+    func testCompetitorAlertsLoanSharesAndAIMarket() throws {
+        var c=try career();c.cash=100_000_000;c.initializeManagement()
+        let scout=c.management!.staff.first{$0.speciality=="Scout"}!,target=try XCTUnwrap(c.players.filter{$0.clubID != c.clubID}.max{$0.rating < $1.rating})
+        XCTAssertTrue(c.hireStaff(scout.id));c.toggleShortlist(target.id);XCTAssertTrue(c.scoutPlayer(target.id));XCTAssertNil(c.completedScoutReport(for:target.id))
+        c.progressManagement();c.progressManagement();XCTAssertTrue(c.completedScoutReport(for:target.id) != nil)
+        XCTAssertTrue(c.managementState.scouts.first{$0.playerID==target.id}?.text.contains("Competitor interest") ?? false)
+
+        let loan=try XCTUnwrap(c.players.first{$0.clubID != c.clubID}),buyer=loan.clubID
+        var incoming=Negotiation(player:loan,week:c.managementState.elapsed,loanWeeks:4);incoming.clubID=buyer;incoming.stage="Final review";incoming.fee=0;incoming.signingFee=0;incoming.loanWageShare=50;c.management!.negotiations.append(incoming)
+        let before=c.cash,beforeWage=c.states[loan.id]!.wage,beforeYears=c.states[loan.id]!.contractYears
+        XCTAssertTrue(c.acceptTransfer(incoming.id));XCTAssertEqual(c.cash,before);XCTAssertEqual(c.states[loan.id]!.wage,beforeWage);XCTAssertEqual(c.states[loan.id]!.contractYears,beforeYears)
+        c.progressManagement();XCTAssertTrue(c.ledger.contains{$0.description.contains("Loan wages:") && $0.amount == -(beforeWage/2)})
+
+        var market=try career();market.cash=100_000_000;let listed=market.squad[0];XCTAssertTrue(market.listPlayerForLoan(listed.id,weeks:12))
+        for _ in 0..<20 where !market.managementState.negotiations.contains(where:{$0.selling && $0.loanWeeks>0}) {market.progressManagement()}
+        let ai=try XCTUnwrap(market.managementState.negotiations.first{$0.selling && $0.loanWeeks>0});XCTAssertTrue(ai.fee>0);XCTAssertTrue([50,75,100].contains(ai.loanWageShare ?? 0))
+    }
+    func testValidatedTrainingAssignments() throws {
+        var c=try career();c.initializeManagement();let player=c.squad[0],coach=c.management!.staff.first{$0.speciality != "Scout"}!,scout=c.management!.staff.first{$0.speciality=="Scout"}!
+        XCTAssertTrue(c.hireStaff(coach.id));XCTAssertTrue(c.hireStaff(scout.id))
+        XCTAssertTrue(c.setIndividualTraining(playerID:player.id,coachID:coach.id,skill:3,intensity:2));XCTAssertEqual(c.management?.assignments[player.id]?.coachID,coach.id)
+        XCTAssertFalse(c.setIndividualTraining(playerID:player.id,coachID:scout.id,skill:3,intensity:2));XCTAssertEqual(c.management?.assignments[player.id]?.coachID,coach.id)
+        XCTAssertFalse(c.setIndividualTraining(playerID:player.id,coachID:coach.id,skill:9,intensity:2));XCTAssertFalse(c.setIndividualTraining(playerID:player.id,coachID:coach.id,skill:3,intensity:4))
+        XCTAssertTrue(c.setIndividualTraining(playerID:player.id,coachID:nil,skill:3,intensity:1));XCTAssertNil(c.management?.assignments[player.id])
     }
     func testPlayerAgesAndYouthRollover() throws {
         var c=try career()
@@ -395,6 +483,75 @@ final class CareerTests {
         XCTAssertTrue(m.homeShots+m.awayShots>0)
         print("LIVE: \(m.homeGoals)-\(m.awayGoals), shots \(m.homeShots)/\(m.awayShots), passes \(m.homePasses)/\(m.awayPasses)")
     }
+    func testGoalkeeperDistributionAndDelayedOffside() throws {
+        let c=try career(),fixture=try XCTUnwrap(c.nextFixture)
+        var m=LiveMatch(career:c,fixture:fixture);m.startHalf()
+        let keeperIndex=try XCTUnwrap(m.players.firstIndex{$0.side==0 && $0.slot==0})
+        m.owner=m.players[keeperIndex].id;m.ball=m.players[keeperIndex].point;m.goalkeeperResetDelay=0.8
+        XCTAssertTrue((m.goalkeeperResetDelay ?? 0)>0)
+        XCTAssertNil(m.setPieceRestart)
+        var sawGoalKick=false
+        for _ in 0..<40 {m.step();if m.setPieceRestart?.kind=="goal kick" {sawGoalKick=true}}
+        XCTAssertTrue(sawGoalKick)
+        let receiver=try XCTUnwrap(m.players.first{$0.side==0 && $0.slot==10})
+        let pass=BallFlight(from:FieldPoint(55,34),target:receiver.point,progress:0,duration:0.1,kind:"pass",kicker:m.players.first{$0.side==0 && $0.slot==8}?.id ?? "",receiver:receiver.id,side:0,onTarget:false,offsideReceiver:receiver.id)
+        m.setPieceRestart=nil;m.goalkeeperResetDelay=nil;m.flight=pass;m.owner=nil;m.ball=pass.from
+        m.step(0.1)
+        XCTAssertEqual(m.events.last?.kind,"offside")
+        XCTAssertEqual(m.setPieceRestart?.kind,"offside")
+    }
+    func testBallBoundariesAndRestartOwnership() throws {
+        let c=try career(),fixture=try XCTUnwrap(c.nextFixture)
+        var throwIn=LiveMatch(career:c,fixture:fixture);throwIn.phase = .firstHalf
+        let passer=try XCTUnwrap(throwIn.players.first{$0.side==0 && $0.slot==10})
+        let receiver=try XCTUnwrap(throwIn.players.first{$0.side==0 && $0.slot==9})
+        throwIn.ball=FieldPoint(61,66);throwIn.flight=BallFlight(from:throwIn.ball,target:FieldPoint(64,70),progress:0,duration:0.1,kind:"pass",kicker:passer.id,receiver:receiver.id,side:0,onTarget:false)
+        throwIn.step(0.1)
+        XCTAssertNil(throwIn.setPieceRestart)
+        XCTAssertEqual(throwIn.pendingRestart?.kind,"throw in")
+        XCTAssertTrue(throwIn.ball.y>68)
+        XCTAssertEqual(throwIn.events.last?.kind,"throw in")
+        for _ in 0..<5 {throwIn.step()}
+        XCTAssertEqual(throwIn.setPieceRestart?.kind,"throw in")
+        XCTAssertEqual(throwIn.setPieceRestart?.side,1)
+        XCTAssertEqual(throwIn.ball.y,67.5)
+
+        var miss=LiveMatch(career:c,fixture:fixture);miss.phase = .firstHalf
+        let shooter=try XCTUnwrap(miss.players.first{$0.side==0 && $0.slot==10})
+        miss.ball=FieldPoint(82,34);miss.flight=BallFlight(from:miss.ball,target:FieldPoint(105.8,23),progress:0,duration:0.1,kind:"shot",kicker:shooter.id,receiver:nil,side:0,onTarget:false)
+        miss.step(0.1)
+        XCTAssertNil(miss.setPieceRestart)
+        XCTAssertTrue(miss.ball.x>105)
+        for _ in 0..<5 {miss.step()}
+        XCTAssertEqual(miss.setPieceRestart?.kind,"goal kick")
+        XCTAssertEqual(miss.setPieceRestart?.side,1)
+        XCTAssertFalse(miss.events.contains{$0.kind=="save"})
+
+        var foundSave=false,foundRebound=false
+        for seed in 1...100 where !foundSave || !foundRebound {
+            var save=LiveMatch(career:c,fixture:fixture);save.phase = .firstHalf;save.rng=RNG(seed:UInt64(seed))
+            let saveShooter=try XCTUnwrap(save.players.first{$0.side==0 && $0.slot==10})
+            save.ball=FieldPoint(82,34);save.flight=BallFlight(from:save.ball,target:FieldPoint(105.8,34),progress:0,duration:0.1,kind:"shot",kicker:saveShooter.id,receiver:nil,side:0,onTarget:true)
+            save.step(0.1)
+            if save.events.contains(where:{$0.kind=="rebound"}) {
+                foundRebound=true
+                XCTAssertNil(save.owner)
+                XCTAssertNil(save.setPieceRestart)
+                XCTAssertNil(save.goalkeeperResetDelay)
+                XCTAssertNil(save.activeSetPlay)
+                XCTAssertTrue(save.events.contains{$0.kind=="rebound"})
+            } else if save.events.contains(where:{$0.kind=="save"}) {
+                foundSave=true
+                XCTAssertNil(save.setPieceRestart)
+                XCTAssertEqual(save.activeSetPlay,"keeper save")
+                XCTAssertTrue((save.goalkeeperResetDelay ?? 0)>0)
+                for _ in 0..<12 {save.step()}
+                XCTAssertNil(save.setPieceRestart)
+            }
+        }
+        XCTAssertTrue(foundSave)
+        XCTAssertTrue(foundRebound)
+    }
     func testLiveSubstitutionsAndTactics() throws {
         let c=try career();var m=LiveMatch(career:c,fixture:try XCTUnwrap(c.nextFixture));m.startHalf()
         for _ in 0..<100 {m.step()}
@@ -411,6 +568,29 @@ final class CareerTests {
         m.changeTactics(t);XCTAssertEqual(m.managedTactics,t)
         XCTAssertEqual(Set(m.activePlayers.map(\.id)).count,22)
     }
+    func testAdvancedTacticalInstructionsAndSetPieceAliases() throws {
+        let c=try career(),fixture=try XCTUnwrap(c.nextFixture)
+        var m=LiveMatch(career:c,fixture:fixture)
+        var plan=TacticalPlan()
+        var corner=TacticalPlan.defaults(c.tactics)
+        corner[1].point=FieldPoint(72,12)
+        plan.states["Attacking left corner"]=corner
+        var zone=TacticalPlan.defaults(c.tactics)
+        zone[10].action="Pass";zone[10].targetSlot=1
+        plan.states["Attack zone 8"]=zone
+        m.homeTactics.plan=plan
+        m.phase = .firstHalf;m.activeSetPlay="left corner";m.ball=FieldPoint(90,10)
+        let expectedCorner=FieldPoint(m.direction(0)>0 ? corner[1].point.x:105-corner[1].point.x,corner[1].point.y)
+        XCTAssertEqual(m.formationPoint(slot:1,side:0,withBall:true),expectedCorner)
+        m.activeSetPlay=nil
+        let carrierIndex=try XCTUnwrap(m.players.firstIndex{$0.side==0 && $0.slot==10})
+        let carrier=m.players[carrierIndex]
+        m.players[carrierIndex].point=FieldPoint(52.5,34)
+        m.owner=carrier.id;m.ball=FieldPoint(52.5,34);m.holdTime=0.4
+        m.step(0.1)
+        XCTAssertTrue(m.flight?.kind == "pass")
+        XCTAssertTrue(m.homePasses>0)
+    }
     func testLiveSaveResumeAndSpeedParity() throws {
         var c=try career();var match=LiveMatch(career:c,fixture:try XCTUnwrap(c.nextFixture));match.startHalf()
         for _ in 0..<200 {match.step()};c.activeMatch=match
@@ -421,6 +601,27 @@ final class CareerTests {
         for _ in 0..<10 {for _ in 0..<10 {restored.step()}}
         XCTAssertEqual(match.ball,restored.ball);XCTAssertEqual(match.players,restored.players)
         XCTAssertEqual(match.events,restored.events);XCTAssertEqual(match.elapsed,restored.elapsed)
+    }
+
+    func testScoringRolesAndInstantEngineParity() throws {
+        let c=try career(),fixture=try XCTUnwrap(c.nextFixture)
+        var nonStrikerShots=0,nonStrikerGoals=0,totalShots=0
+        for seed in 1...12 {
+            var match=LiveMatch(career:c,fixture:fixture);match.rng=RNG(seed:UInt64(seed));match.finishInstantly()
+            totalShots += match.homeShots+match.awayShots
+            for event in match.events where event.kind=="shot" || event.kind=="goal" {
+                if let id=event.playerID,let player=match.players.first(where:{$0.id==id}),player.role != "FWD" {
+                    if event.kind=="shot" {nonStrikerShots += 1};if event.kind=="goal" {nonStrikerGoals += 1}
+                }
+            }
+        }
+        XCTAssertTrue(nonStrikerShots > totalShots/10)
+        XCTAssertTrue(nonStrikerGoals > 0)
+        var instant=LiveMatch(career:c,fixture:fixture);instant.startHalf();instant.finishInstantly()
+        var stepped=LiveMatch(career:c,fixture:fixture);stepped.startHalf()
+        while !stepped.isFinished {if stepped.phase == .halfTime {stepped.startHalf()} else {stepped.step()}}
+        XCTAssertEqual(instant.homeGoals,stepped.homeGoals);XCTAssertEqual(instant.awayGoals,stepped.awayGoals)
+        XCTAssertEqual(instant.events,stepped.events)
     }
 
     func testGroundConstructionPlacementAndPersistence() throws {
@@ -497,6 +698,17 @@ extension CareerTests {
         XCTAssertTrue(c.acceptDeal("s1"));XCTAssertFalse(c.acceptDeal("s2"));let before=c.cash;c.progressManagement();XCTAssertTrue(c.cash>before)
         XCTAssertTrue(c.bankDeposit(10000));XCTAssertFalse(c.bankWithdraw(10001));XCTAssertTrue(c.bankWithdraw(10000))
         let count=c.players.count;c.retailMatchday(attendance:20000);XCTAssertTrue(c.management!.products.contains{$0.sold>0});XCTAssertEqual(c.players.count,count)
+    }
+    func testAdvertisingBoardCapacityAndExpiry() throws {
+        var c=try career();c.initializeManagement()
+        for id in ["a1","a2","a4","a5","a6","a7","a8","a9","a10","a11"] { XCTAssertTrue(c.acceptDeal(id)) }
+        XCTAssertEqual(c.acceptedPitchBoardCount,Career.pitchBoardCapacity)
+        XCTAssertFalse(c.acceptDeal("a12"))
+        let first=try XCTUnwrap(c.management!.deals.firstIndex(where:{$0.id=="a1"}))
+        c.management!.deals[first].remaining=1
+        c.progressManagement()
+        XCTAssertFalse(c.management!.deals[first].accepted)
+        XCTAssertTrue(c.acceptDeal("a12"))
     }
 }
 

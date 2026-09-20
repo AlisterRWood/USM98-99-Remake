@@ -70,6 +70,12 @@ Import excludes empty/invalid records, and clubs with fewer than eleven usable a
 
 Mega Update reference checks: Dennis Bergkamp and Patrick Vieira link to Arsenal (N-0), while David Beckham links to Manchester United (N-60); Arsenal remains at Highbury. The later-era roster previously extracted from WindowsGameFiles is not the new-career source. Text exports supply matching skill vocabulary. Position is inferred from the strongest of keeping/tackling/passing/shooting; the exact original position flags remain unverified. Byte 31 is now imported as an inferred birth-year offset where plausible. Ages shown in the UI are approximate season-year differences, not verified full birth dates.
 
+### Player-field evidence boundary
+
+The fixed-record audit also checked the bytes surrounding the known date and team fields. Bytes 29–31 form a plausible day/month/year-offset encoding for records whose values produce a date in the supported range, and byte 33 is consistently a valid little-endian team index for accepted records. No independently verified nationality code or preferred-position flag has been identified in the 187-byte record. The importer therefore keeps club country as the player's dataset country and derives the current `GK`/`DEF`/`MID`/`FWD` role from the nine skill bytes for reconstructed gameplay. Those values must not be described as recovered historical nationality or position data until an editor format, executable-independent fixture, or other source establishes the mapping.
+
+The raw candidate records remain available in `WindowsGameFiles/DATA01/PLAYER*.DAT`; the dated audit under `docs/audit/rebuild-2026-09-20/` records the reproducible source inventory. This is an evidence limitation, not a reason to add guessed nationality filters or silently relabel inferred positions.
+
 Import retains 9,747 Mega Update players; invalid, empty or unassigned records are excluded. Strings use Windows-1252. Non-playable/external-team pools are not yet imported.
 
 ## Initial reconstruction rules (historical baseline)

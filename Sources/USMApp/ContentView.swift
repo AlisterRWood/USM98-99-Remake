@@ -26,12 +26,22 @@ struct ContentView: View {
                 }
             }
         }
+        .overlay {
+            if store.endOfSeasonShown {
+                ZStack {
+                    Color.black.opacity(0.72).ignoresSafeArea()
+                    EndOfSeasonView()
+                        .environmentObject(store)
+                        .frame(width: 920, height: 650)
+                }
+            }
+        }
     }
     var toolbar:some View {
             HStack(spacing:4) {
                 ribbonTile("FILE",title:"File") {FileFolderIcon()} action:{store.navigate("File")}
                 ForEach([("Stadium","STAD"),("Business office","BUSI"),("Boardroom","CHAIR"),("Data","DATA"),("Transfer office","TRANS"),("Manager’s office","MNGR"),("Dressing room","SQUAD")],id:\.0) { title,label in
-                    ribbonTile(label,title:title) {RoomArt(name:roomThumbnail(title))} action:{if title=="Data" {store.enter("Data")}else{store.enter(title)}}
+                ribbonTile(label,title:title) {RoomArt(name:roomThumbnail(title))} action:{if title=="Data" {store.enter("Data")}else{store.enter(title)}}
                 }
                 ribbonTile("MATCH",title:"Matchday") {MatchTunnelIcon()} action:{store.advance()}
                 ribbonTile("HELP",title:"Help") {Text("?").font(.system(size:34,weight:.black)).foregroundStyle(.yellow).frame(maxWidth:.infinity,maxHeight:.infinity).background(crimson)} action:{store.navigate("Help")}
@@ -42,9 +52,9 @@ struct ContentView: View {
         ZStack(alignment:.top) {
             clubContent.frame(maxWidth:.infinity,maxHeight:.infinity)
             toolbar
-                .offset(y:toolbarVisible ? 0:-120)
-                .allowsHitTesting(toolbarVisible)
-                .accessibilityHidden(!toolbarVisible)
+                .offset(y: store.page == "Stadium" || store.page == "Stadium development" || toolbarVisible ? 0:-120)
+                .allowsHitTesting(store.page == "Stadium" || store.page == "Stadium development" || toolbarVisible)
+                .accessibilityHidden(!(store.page == "Stadium" || store.page == "Stadium development" || toolbarVisible))
         }
         .clipped()
         .contentShape(Rectangle())
@@ -55,7 +65,7 @@ struct ContentView: View {
                 let rect=content.convert(content.bounds,to:nil)
                 distance=rect.contains(point) ? rect.maxY-point.y:nil
             } else {distance=nil}
-            let visible=distance.map {$0 <= (toolbarVisible ? 128:160)} ?? false
+            let visible=store.page == "Stadium" || store.page == "Stadium development" || (distance.map {$0 <= (toolbarVisible ? 128:160)} ?? false)
             if visible != toolbarVisible {withAnimation(.easeInOut(duration:0.22)) {toolbarVisible=visible}}
         }
         .background(RightClickBack {if store.page != store.room {store.page=store.room}else if store.room != "Stadium" {store.enter("Stadium")}})
@@ -126,6 +136,7 @@ struct ContentView: View {
         case "Board review":EvaluationScreen()
         case "Medical room":MedicalScreen()
         case "Trophies":CompetitionScreen(initialTab:"Trophies")
+        case "Season recap":CompetitionScreen(initialTab:"Season recap")
         default:ArchiveView()
         }
     }
@@ -138,30 +149,101 @@ struct RoomArt:View {
 }
 struct TitleScreen:View {
     @EnvironmentObject var store:GameStore
+    @ViewState var loadOpen=false
     var body:some View {
         GeometryReader { geo in
             ZStack {
-                RoomArt(name:"stadium-estate").frame(width:geo.size.width,height:geo.size.height).scaleEffect(1.14)
-                LinearGradient(colors:[.black.opacity(0.85),.black.opacity(0.4),.black.opacity(0.16)],startPoint:.leading,endPoint:.trailing)
-                VStack(alignment:.leading,spacing:24) {
+                MainMenuArt().frame(width:geo.size.width,height:geo.size.height).clipped()
+                VStack {
                     Spacer()
-                    Text("THE BEAUTIFUL GAME. YOUR CLUB.").font(.system(size:11,weight:.bold,design:.monospaced)).tracking(3).foregroundStyle(mint)
-                    VStack(alignment:.leading,spacing:0) {Text("ULTIMATE").font(.system(size:54,weight:.black));Text("SOCCER MANAGER").font(.system(size:35,weight:.black));Text("98 / 99").font(.system(size:82,weight:.black,design:.rounded)).foregroundStyle(mint)}.shadow(color:.black.opacity(0.5),radius:12,y:4)
-                    Text("A season to remember.").font(.system(size:23,weight:.medium,design:.serif)).foregroundStyle(.white.opacity(0.85))
-                    VStack(spacing:10) {
-                        titleButton("New game","Start your managerial career",icon:"plus") {store.newCareer=true}
-                        titleButton("Load game",store.hasSave ? "Continue your saved career":"Choose a saved career file",icon:"folder") {if store.hasSave {store.loadCareer()} else {store.importSave()}}
-                        titleButton("Import saved game","Open an exported native career",icon:"square.and.arrow.down") {store.importSave()}
-                    }.frame(width:360).padding(.top,12)
-                    HStack(spacing:24) {Button(store.playingMusic ? "♫  Music on":"♫  Music off") {store.toggleMusic()};Button("Quit") {NSApp.terminate(nil)}}.buttonStyle(.plain).font(.system(size:12)).foregroundStyle(.white.opacity(0.7)).padding(.top,8)
-                    Spacer()
-                    Text("MEGA UPDATE 1.2  •  31 JAN 2001 SQUADS  •  NATIVE macOS").font(.system(size:9,weight:.bold,design:.monospaced)).tracking(1.5).foregroundStyle(.white.opacity(0.55))
-                }.padding(.leading,76).padding(.vertical,38).frame(maxWidth:.infinity,alignment:.leading)
+                    VStack(spacing:18) {
+                        Text("Please Select Option")
+                            .font(.system(size:35,weight:.black,design:.rounded))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth:.infinity)
+                            .padding(.vertical,4)
+                            .background(LinearGradient(colors:[Color(red:0.95,green:0.03,blue:0.03),Color(red:0.48,green:0.0,blue:0.0)],startPoint:.top,endPoint:.bottom),in:Capsule())
+                            .overlay(Capsule().stroke(Color.black,lineWidth:4))
+                            .shadow(color:.black.opacity(0.75),radius:2,y:2)
+                        HStack(spacing:34) {
+                            titleChoice("Manager", "All business functions", "controlled by player") {store.newCareer=true}
+                            titleChoice("Coach", "All business functions", "computer controlled") {store.newCareer=true}
+                            titleChoice("Load Game", "Load previously", "saved game") {loadOpen=true}
+                        }
+                        .padding(.horizontal,26)
+                    }
+                    .padding(.horizontal,22)
+                    .padding(.top,16)
+                    .padding(.bottom,28)
+                    .frame(maxWidth:1200)
+                    .background(LinearGradient(colors:[Color(white:0.92),Color(white:0.68),Color(white:0.86)],startPoint:.topLeading,endPoint:.bottomTrailing))
+                    .overlay(Rectangle().stroke(Color.black,lineWidth:5))
+                    .overlay(Rectangle().stroke(Color.white.opacity(0.8),lineWidth:2).padding(4))
+                    .shadow(color:.black.opacity(0.8),radius:16,y:13)
+                    .padding(.horizontal,24)
+                    .padding(.bottom,geo.size.height * 0.10)
+                }
             }.clipped()
-        }
+        }.sheet(isPresented:$loadOpen) {LoadCareerSheet().environmentObject(store)}
     }
-    func titleButton(_ title:String,_ detail:String,icon:String,action:@escaping()->Void)->some View {
-        Button(action:action) {HStack(spacing:17) {Image(systemName:icon).font(.system(size:20)).foregroundStyle(mint).frame(width:25);VStack(alignment:.leading,spacing:4) {Text(title).font(.system(size:18,weight:.semibold));Text(detail).font(.system(size:10)).foregroundStyle(.white.opacity(0.6))};Spacer();Image(systemName:"chevron.right").font(.system(size:10))}.padding(16).background(.black.opacity(0.45),in:RoundedRectangle(cornerRadius:6)).overlay(RoundedRectangle(cornerRadius:6).stroke(.white.opacity(0.2)))}.buttonStyle(.plain)
+    func titleChoice(_ title:String,_ lineOne:String,_ lineTwo:String,action:@escaping()->Void)->some View {
+        Button(action:action) {
+            VStack(spacing:8) {
+                Text(title)
+                    .font(.system(size:20,weight:.black,design:.rounded))
+                    .foregroundStyle(.yellow)
+                    .frame(maxWidth:.infinity)
+                    .padding(.vertical,4)
+                    .background(LinearGradient(colors:[Color(red:1,green:0.12,blue:0.08),Color(red:0.58,green:0.0,blue:0.0)],startPoint:.top,endPoint:.bottom),in:Capsule())
+                    .overlay(Capsule().stroke(Color.black,lineWidth:4))
+                Text("\(lineOne)\n\(lineTwo)")
+                    .font(.system(size:16,weight:.semibold,design:.rounded))
+                    .foregroundStyle(.black)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+            }
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth:.infinity)
+        .help("\(title): \(lineOne) \(lineTwo)")
+    }
+}
+struct MainMenuArt:View {
+    var body:some View {if let url=Bundle.module.url(forResource:"MainMenuBackground",withExtension:"png",subdirectory:"Resources"),let image=NSImage(contentsOf:url) {Image(nsImage:image).resizable().interpolation(.high).aspectRatio(contentMode:.fill)} else {Color.black}}
+}
+struct LoadCareerSheet:View {
+    @EnvironmentObject var store:GameStore
+    @Environment(\.dismiss) var dismiss
+    @ViewState var saves:[CareerSaveSummary]=[]
+    var body:some View {
+        ClassicDialog(title:"Load Game",subtitle:"Select a saved career") {
+            if saves.isEmpty {
+                Text("No native saved careers were found.").foregroundStyle(muted).padding(20)
+            } else {
+                ScrollView {LazyVStack(spacing:6) {ForEach(saves) {save in
+                    Button {store.loadCareer(from:save.url);dismiss()} label: {
+                        HStack(alignment:.top,spacing:12) {
+                            Image(systemName:"folder.fill").font(.system(size:22)).foregroundStyle(mint).frame(width:28)
+                            VStack(alignment:.leading,spacing:3) {
+                                Text(save.career.club.name).font(.system(size:17,weight:.bold))
+                                Text(save.career.manager).font(.system(size:13,weight:.semibold)).foregroundStyle(mint)
+                                Text("Season \(save.career.dateLabel) · \(calendarDate(save.career))").font(.system(size:11,design:.monospaced)).foregroundStyle(muted)
+                            }
+                            Spacer();Text(save.url.deletingPathExtension().lastPathComponent).font(.system(size:10)).foregroundStyle(muted).lineLimit(1)
+                        }.padding(12).background(.black.opacity(0.22),in:RoundedRectangle(cornerRadius:5)).overlay(RoundedRectangle(cornerRadius:5).stroke(.white.opacity(0.1)))
+                    }.buttonStyle(.plain)
+                }}}.frame(maxHeight:360)
+            }
+            Button("Cancel") {dismiss()}.padding(.top,4)
+        }.frame(width:760).padding(20)
+        .onAppear {saves=store.savedCareerSummaries()}
+    }
+    func calendarDate(_ career:Career)->String {
+        var calendar=Calendar(identifier:.gregorian);calendar.timeZone=TimeZone(secondsFromGMT:0)!
+        let start=calendar.date(from:DateComponents(year:1997+career.season,month:8,day:1))!
+        let date=calendar.date(byAdding:.day,value:career.week*7,to:start)!
+        let formatter=DateFormatter();formatter.locale=Locale(identifier:"en_US_POSIX");formatter.timeZone=TimeZone(secondsFromGMT:0);formatter.dateFormat="d MMM yyyy"
+        return formatter.string(from:date)
     }
 }
 struct CareerSetup:View {
@@ -172,7 +254,6 @@ struct CareerSetup:View {
     @ViewState var division=0
     @ViewState var club=""
     @ViewState var cash=8_000_000
-    @ViewState var mode="Manager"
     var choices:[Club] {store.database.clubs.filter{$0.country==country && $0.division==division}.sorted{$0.name<$1.name}}
     var selected:Club? {store.database.clubs.first{$0.id==club}}
     var body:some View {
@@ -208,11 +289,10 @@ struct CareerSetup:View {
                     Text(selected?.name ?? "Your club").font(.system(size:25,weight:.bold)).foregroundStyle(mint)
                     Text("\(manager)\n\(selected?.stadium ?? "") · \(country), Division \(division+1)").font(.system(size:15)).lineSpacing(8)
                     GameChoice(label:"Starting funds",value:Binding(get:{String(cash/1_000_000)+" million"},set:{cash=(Int($0.components(separatedBy:" ")[0]) ?? 8)*1_000_000}),options:["2 million","8 million","20 million"])
-                    GameChoice(label:"Role",value:$mode,options:["Manager","Coach"])
                     Text("The board wants a top-half finish. Your first stop is the stadium: enter the dressing room to meet the squad, then head down the tunnel for matchday.").font(.system(size:12)).foregroundStyle(muted)
                 }
             }.frame(maxWidth:.infinity,alignment:.topLeading).frame(height:230,alignment:.topLeading)
-            HStack {Button(step==0 ? "Cancel":"Back") {if step==0 {store.newCareer=false} else {step -= 1}};Spacer();Button(step==4 ? "BEGIN CAREER  →":"CONTINUE  →") {if step==4 {store.start(club:club,manager:manager.trimmingCharacters(in:.whitespaces),cash:cash,mode:mode)} else {step += 1;if step==3 {club=choices.first?.id ?? ""}}}.buttonStyle(AccentButton()).disabled((step==1 && manager.trimmingCharacters(in:.whitespaces).isEmpty) || (step==3 && selected==nil))}
+            HStack {Button(step==0 ? "Cancel":"Back") {if step==0 {store.newCareer=false} else {step -= 1}};Spacer();Button(step==4 ? "BEGIN CAREER  →":"CONTINUE  →") {if step==4 {store.start(club:club,manager:manager.trimmingCharacters(in:.whitespaces),cash:cash)} else {step += 1;if step==3 {club=choices.first?.id ?? ""}}}.buttonStyle(AccentButton()).disabled((step==1 && manager.trimmingCharacters(in:.whitespaces).isEmpty) || (step==3 && selected==nil))}
         }.padding(24).frame(width:620,height:570).background(ink).preferredColorScheme(.dark)
     }
 }

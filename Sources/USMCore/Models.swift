@@ -15,7 +15,7 @@ public struct Club: Codable, Identifiable, Equatable {
     public var stadium: String
     public var country: String
     public var division: Int
-    public var league: String { "\(country) · Division \(division + 1)" }
+    public var league: String { CompetitionNames.league(country: country, division: division) }
 }
 public struct Player: Codable, Identifiable, Equatable {
     public var id: String
@@ -182,6 +182,7 @@ public struct Career: Codable {
     public var trophies:[Trophy]?
     public var lastMatch: MatchReport?
     public var history: [String] = []
+    public var seasonRecaps: [SeasonRecap]?
     public var rng: RNG
     public var club: Club { clubs.first { $0.id == clubID }! }
     public var squad: [Player] { players.filter { $0.clubID == clubID } }

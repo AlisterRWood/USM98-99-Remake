@@ -23,7 +23,10 @@ struct BusinessOfficeCommercialOverlay:View {
         store.career.managementState.deals.first { $0.kind == "Club sponsor" && $0.accepted }?.brand
     }
     var advertisingAvailable:Bool {
-        store.career.managementState.deals.contains { $0.kind != "Club sponsor" && !$0.accepted }
+        store.career.managementState.deals.contains { deal in
+            guard !deal.accepted,deal.kind != "Club sponsor" else { return false }
+            return deal.kind != "Pitch boards" || store.career.acceptedPitchBoardCount < Career.pitchBoardCapacity
+        }
     }
 
     var body:some View {
@@ -48,6 +51,7 @@ struct BusinessOfficeCommercialOverlay:View {
                 if let sponsor {
                     SponsorWindowLogo(brand:sponsor)
                         .frame(width:width*0.115,height:height*0.135)
+                        .rotationEffect(.degrees(-4.2))
                         .position(x:width*0.771,y:height*0.46)
                 }
             }
@@ -89,7 +93,6 @@ struct SponsorWindowLogo:View {
 struct RoomView:View {
     @EnvironmentObject var store:GameStore
     @ViewState var hovered:String?
-    @ViewState var showLabels=false
     var room:String {store.room}
     var art:String {
         switch room {
@@ -141,6 +144,7 @@ struct RoomView:View {
             spot("Joe’s Burgers","Review food prices and takings",0.005,0.43,0.275,0.43,"Catering","bs_catering"),
             spot("Club shop","Price the club’s merchandise",0.475,0.465,0.15,0.15,"Merchandise","bs_merchandise")]
         case "Transfer office":return [
+            spot("Team photo","Open squad team selection",0.535,0.125,0.16,0.17,"Squad","sq_teamselect"),
             spot("Binoculars","Search for players to buy or loan",0.58,0.43,0.12,0.23,"Transfers","tr_search"),
             spot("Current negotiations","Read replies and complete player deals",0.34,0.78,0.51,0.215,"Negotiations","tr_currentnegs"),
             spot("Short list","Track transfer targets and scouting reports",0.145,0.485,0.17,0.26,"Shortlist","tr_search"),
@@ -155,6 +159,7 @@ struct RoomView:View {
             spot("Sports pages","Read the latest match report",0.30,0.735,0.30,0.20,"Match report","mg_newspaper"),
             spot("Filing cabinet","Player records and club archive",0.017,0.265,0.185,0.54,"Archive","mg_filing"),
             spot("Sierratext TV","Tables, results and top scorers",0.40,0.29,0.135,0.17,"Competitions","mg_fixturelist"),
+            spot("Team photo","Open squad team selection",0.625,0.04,0.125,0.17,"Squad","sq_teamselect"),
             spot("Scrapbook","Your club history",0.53,0.66,0.14,0.10,"Archive","mg_filing"),
             spot("Video player","Review the latest match",0.42,0.49,0.11,0.065,"Match report","mg_newspaper"),
             spot("Printer","File and print options",0.215,0.37,0.125,0.155,"File","mg_filing")]
@@ -177,14 +182,18 @@ struct RoomView:View {
                         Button {if s.target=="matchday" {store.audio.play(s.sound);store.advance()} else if s.entersRoom {store.enter(s.target)} else {store.navigate(s.target,sound:s.sound)}} label: {
                             ZStack(alignment:.bottom) {
                                 RoundedRectangle(cornerRadius:8).fill(mint.opacity(hovered==s.title ? 0.12:0.001)).overlay(RoundedRectangle(cornerRadius:8).stroke(mint.opacity(hovered==s.title ? 0.9:0),lineWidth:2))
-                                if hovered==s.title || showLabels {Text(s.title).font(.system(size:12,weight:.bold)).foregroundStyle(.white).padding(.horizontal,12).padding(.vertical,7).background(Color(red:0.42,green:0.07,blue:0.055),in:RoundedRectangle(cornerRadius:4)).offset(y:9)}
+                                if hovered==s.title {
+                                    VStack(alignment:.leading,spacing:2) {
+                                        Text(s.title).font(.system(size:12,weight:.bold))
+                                        Text(s.detail).font(.system(size:10)).foregroundStyle(.white.opacity(0.82)).lineLimit(2)
+                                    }.foregroundStyle(.white).padding(.horizontal,12).padding(.vertical,7).frame(maxWidth:240,alignment:.leading).background(Color(red:0.42,green:0.07,blue:0.055),in:RoundedRectangle(cornerRadius:4)).offset(y:9)
+                                }
                             }.frame(width:s.rect.width*width,height:s.rect.height*height).contentShape(Rectangle())
                         }.buttonStyle(.plain).accessibilityLabel(s.title).help(s.detail)
                         .frame(width:s.rect.width*width,height:s.rect.height*height)
                         .onHover {inside in if inside {hovered=s.title;NSCursor.pointingHand.push()} else {if hovered==s.title {hovered=nil};NSCursor.pop()}}
                         .position(x:left+s.rect.midX*width,y:top+s.rect.midY*height)
                     }
-                    HStack {Text(room.uppercased()).font(.system(size:10,weight:.bold)).tracking(2);Spacer();Button(showLabels ? "Hide hotspots":"Show hotspots") {showLabels.toggle()}.buttonStyle(.plain).font(.system(size:10))}.padding(12).background(.black.opacity(0.5)).frame(width:width).position(x:geo.size.width/2,y:top+18)
                 }
             }
         }

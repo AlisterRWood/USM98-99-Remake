@@ -10,7 +10,7 @@ public struct TransferObligation:Codable,Identifiable {
 }
 public extension Career {
     mutating func updateTransferExtras(_ id:String,appearanceFee:Int,appearanceCount:Int,swap:String?,bonuses:ContractBonuses){
-        initializeManagement();guard let i=management!.negotiations.firstIndex(where:{$0.id==id && ["Club asking price","Club counter offer","Player terms","Player counter offer"].contains($0.stage)}),appearanceFee>=0,(1...100).contains(appearanceCount),[bonuses.league,bonuses.cup,bonuses.promotion,bonuses.final,bonuses.win,bonuses.goal].allSatisfy({$0>=0}),swap==nil || squad.contains(where:{$0.id==swap}) else{return}
+        initializeManagement();guard let i=management!.negotiations.firstIndex(where:{$0.id==id && ["Club asking price","Club counter offer","Player terms","Player counter offer"].contains($0.stage)}),management!.negotiations[i].expires >= management!.elapsed,let player=players.first(where:{$0.id==management!.negotiations[i].playerID}),management!.negotiations[i].selling ? player.clubID==clubID:player.clubID==management!.negotiations[i].clubID,appearanceFee>=0,(1...100).contains(appearanceCount),[bonuses.league,bonuses.cup,bonuses.promotion,bonuses.final,bonuses.win,bonuses.goal].allSatisfy({$0>=0}),swap==nil || canRelease(swap!) else{return}
         if management!.negotiations[i].stage.hasPrefix("Club") {management!.negotiations[i].appearanceFee=appearanceFee;management!.negotiations[i].appearanceCount=appearanceCount;management!.negotiations[i].swapPlayer=swap};management!.negotiations[i].bonuses=bonuses
     }
     mutating func payAppearanceAndMatchBonuses(_ match:LiveMatch){

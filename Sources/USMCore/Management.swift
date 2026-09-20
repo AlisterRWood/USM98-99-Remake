@@ -20,6 +20,7 @@ public struct Negotiation:Codable,Identifiable {
     public var playerID:String, clubID:String, stage:String, reply:String
     public var fee:Int, wage:Int, signingFee:Int, years:Int, due:Int, expires:Int
     public var selling:Bool, loanWeeks:Int
+    public var loanWageShare:Int?
     public var appearanceFee:Int?
     public var appearanceCount:Int?
     public var swapPlayer:String?
@@ -29,11 +30,16 @@ public struct Negotiation:Codable,Identifiable {
     /// Keeping this optional preserves compatibility with existing career saves.
     public var closedWeek:Int?
     public init(player:Player,week:Int,selling:Bool=false,loanWeeks:Int=0) {
-        playerID=player.id;clubID=player.clubID;stage="Enquiry sent";reply="Awaiting club response";fee=loanWeeks>0 ? player.value/20:player.value;wage=player.wage;signingFee=player.wage*4;years=3;due=week+1;expires=week+6;self.selling=selling;self.loanWeeks=loanWeeks
+        playerID=player.id;clubID=player.clubID;stage="Enquiry sent";reply="Awaiting club response";fee=loanWeeks>0 ? player.value/20:player.value;wage=player.wage;signingFee=player.wage*4;years=3;due=week+1;expires=week+6;self.selling=selling;self.loanWeeks=loanWeeks;loanWageShare=loanWeeks>0 ? 100:nil
     }
     public var closed:Bool {["Completed","Withdrawn","Rejected","Expired"].contains(stage)}
 }
-public struct PlayerLoan:Codable {public var playerID:String,ownerID:String;public var returnWeek:Int}
+public struct PlayerLoan:Codable {
+    public var playerID:String,ownerID:String
+    public var returnWeek:Int
+    public var wageShare:Int?
+    public init(playerID:String,ownerID:String,returnWeek:Int,wageShare:Int?=nil){self.playerID=playerID;self.ownerID=ownerID;self.returnWeek=returnWeek;self.wageShare=wageShare}
+}
 public struct CommercialDeal:Codable,Identifiable {
     public var id:String,brand:String,kind:String
     public var weekly:Int,term:Int,remaining:Int
@@ -105,6 +111,10 @@ public struct ManagementState:Codable {
     }
 }
 public extension Career {
+    static let pitchBoardCapacity = 10
+    var acceptedPitchBoardCount: Int {
+        management?.deals.filter{$0.kind=="Pitch boards" && $0.accepted && $0.remaining>0}.count ?? 0
+    }
     var managementState:ManagementState {management ?? ManagementState()}
     mutating func initializeManagement(){
         // Keep pre-commercial-overhaul saves compatible: new original-CD board
@@ -141,6 +151,14 @@ public extension Career {
         management!.staff[i].weeksRemaining=104;management!.staff[i].wage=management!.staff[i].wage*110/100;return true
     }
     mutating func setTraining(slot:Int,activity:String){initializeManagement();guard (0..<14).contains(slot),slot/2 != 5 else{return};management!.timetable[slot]=activity}
+    @discardableResult mutating func setIndividualTraining(playerID:String,coachID:String?,skill:Int,intensity:Int)->Bool {
+        initializeManagement()
+        guard players.contains(where:{$0.id==playerID && $0.clubID==clubID}), (0...8).contains(skill), (1...3).contains(intensity) else {return false}
+        guard let coachID else {management!.assignments.removeValue(forKey:playerID);return true}
+        guard management!.staff.contains(where:{$0.id==coachID && $0.employed && $0.speciality != "Scout"}) else {return false}
+        management!.assignments[playerID]=TrainingAssignment(coachID:coachID,skill:skill,intensity:intensity)
+        return true
+    }
     @discardableResult mutating func bookCamp(kind:String,weeks:Int)->Bool {
         initializeManagement();let cost=squad.count*300*weeks;guard (1...4).contains(weeks),management!.campWeeks==0,cash>=cost else{return false}
         management!.campWeeks=weeks;management!.campKind=kind;transact("\(kind) training camp",-cost);return true
@@ -150,12 +168,22 @@ public extension Career {
         initializeManagement();guard let p=players.first(where:{$0.id==id}),let s=management!.staff.filter({$0.employed && $0.speciality=="Scout"}).min(by:{a,b in management!.scouts.filter{$0.scoutID==a.id && $0.due>management!.elapsed}.count<management!.scouts.filter{$0.scoutID==b.id && $0.due>management!.elapsed}.count}) else{return false}
         management!.scouts.removeAll{$0.playerID==id};management!.scouts.append(ScoutReport(playerID:id,scoutID:s.id,text:"Assignment in progress",due:management!.elapsed+2,low:max(0,p.rating-15),high:min(99,p.rating+15)));return true
     }
+    func completedScoutReport(for playerID:String)->ScoutReport? {
+        guard let report=management?.scouts.first(where:{$0.playerID==playerID}),report.due <= managementState.elapsed,report.text != "Assignment in progress" else{return nil}
+        return report
+    }
     @discardableResult mutating func enquire(_ id:String,loanWeeks:Int=0)->Bool {
         initializeManagement();guard let p=players.first(where:{$0.id==id}),p.clubID != clubID,!management!.negotiations.contains(where:{$0.playerID==id && !$0.closed}) else{return false}
         var n=Negotiation(player:p,week:management!.elapsed,loanWeeks:loanWeeks);n.fee=askingPrice(p,loan:loanWeeks>0);management!.negotiations.append(n);return true
     }
+    @discardableResult mutating func setLoanWageShare(_ id:String,share:Int)->Bool {
+        initializeManagement();guard (0...100).contains(share),let i=management!.negotiations.firstIndex(where:{$0.id==id && $0.loanWeeks>0 && ["Club asking price","Club counter offer","Player terms","Player counter offer"].contains($0.stage)}) else{return false}
+        management!.negotiations[i].loanWageShare=share;return true
+    }
     @discardableResult mutating func submitTerms(_ id:String,fee:Int,wage:Int,bonus:Int,years:Int)->Bool {
         initializeManagement();guard let i=management!.negotiations.firstIndex(where:{$0.id==id}),["Club asking price","Club counter offer","Player terms","Player counter offer"].contains(management!.negotiations[i].stage),fee>=0,wage>0,bonus>=0,(1...5).contains(years) else{return false}
+        let current=management!.negotiations[i]
+        guard current.expires >= management!.elapsed,let player=players.first(where:{$0.id==current.playerID}),current.selling ? player.clubID==clubID:player.clubID==current.clubID else {management!.negotiations[i].stage="Expired";management!.negotiations[i].closedWeek=management!.elapsed;return false}
         let clubStage=management!.negotiations[i].stage.hasPrefix("Club")
         management!.negotiations[i].attempts=(management!.negotiations[i].attempts ?? 0)+1
         if clubStage {management!.negotiations[i].fee=fee};management!.negotiations[i].wage=wage;management!.negotiations[i].signingFee=bonus;management!.negotiations[i].years=years
@@ -166,7 +194,8 @@ public extension Career {
         initializeManagement();guard let i=management!.negotiations.firstIndex(where:{$0.id==id}),!management!.negotiations[i].closed else{return false}
         let n=management!.negotiations[i],now=management!.elapsed
         if n.expires<now {management!.negotiations[i].stage="Expired";management!.negotiations[i].closedWeek=now;return false}
-        guard (immediate || n.due<=now),let p=players.first(where:{$0.id==n.playerID}),["Enquiry sent","Club considering","Player considering"].contains(n.stage) else{return false}
+        guard (immediate || n.due<=now),let p=players.first(where:{$0.id==n.playerID}),["Enquiry sent","Club considering","Player considering"].contains(n.stage),n.selling ? p.clubID==clubID:p.clubID==n.clubID else{return false}
+        let patienceLimit=3+(p.rating%4)
             var stage=n.stage,reply=n.reply
             switch stage {
             case "Enquiry sent":
@@ -176,11 +205,12 @@ public extension Career {
             case "Club considering":
                 let swapValue=n.swapPlayer.flatMap{id in squad.first{$0.id==id}?.value} ?? 0
                 let total=n.fee+(n.appearanceFee ?? 0)*80/100+swapValue*80/100
-                if (n.attempts ?? 0)>5 {stage="Rejected";reply="Negotiations ended after repeated unsuccessful offers."}
+                if (n.attempts ?? 0)>=patienceLimit {stage="Rejected";reply="Negotiations ended after repeated unsuccessful offers."}
                 else if total >= askingPrice(p,loan:n.loanWeeks>0) {stage="Player terms";reply="Club agreement reached. The player seeks £\(p.wage.formatted()) per week and a signing fee of £\((p.wage*4).formatted())."}
                 else {stage="Club counter offer";reply="Your fee is too low. The club asks £\(askingPrice(p,loan:n.loanWeeks>0).formatted())."}
             case "Player considering":
-                if n.wage+(n.bonuses?.win ?? 0)/2>=p.wage && n.signingFee>=p.wage*2 {stage="Final review";reply="All parties agree. Review the full cost and accept or withdraw. No money moves until you accept."}
+                if (n.attempts ?? 0)>=patienceLimit {stage="Rejected";reply="The player has lost patience with the repeated counteroffers."}
+                else if n.wage+(n.bonuses?.win ?? 0)/2>=p.wage && n.signingFee>=p.wage*2 {stage="Final review";reply="All parties agree. Review the full cost and accept or withdraw. No money moves until you accept."}
                 else {stage="Player counter offer";reply="The player requests £\(p.wage.formatted()) per week and a signing fee of at least £\((p.wage*2).formatted())."}
             default:return false
             }
@@ -194,23 +224,29 @@ public extension Career {
     @discardableResult mutating func acceptTransfer(_ id:String)->Bool {
         initializeManagement();guard activeMatch==nil,let n=management!.negotiations.firstIndex(where:{$0.id==id}),management!.negotiations[n].stage=="Final review",let p=players.firstIndex(where:{$0.id==management!.negotiations[n].playerID}) else{return false}
         let offer=management!.negotiations[n],player=players[p]
+        if offer.expires < management!.elapsed {management!.negotiations[n].stage="Expired";management!.negotiations[n].closedWeek=management!.elapsed;return false}
+        if offer.selling {guard player.clubID==clubID,!(management!.loans.contains{$0.playerID==player.id}) else{return false}}
+        else {guard player.clubID==offer.clubID,!(management!.loans.contains{$0.playerID==player.id}) else{return false}}
+        let wageShare=offer.loanWageShare ?? 100
         if offer.selling {
             guard canRelease(player.id) else{return false}
-            if offer.loanWeeks>0 {management!.loans.append(PlayerLoan(playerID:player.id,ownerID:clubID,returnWeek:management!.elapsed+offer.loanWeeks))}
+            if offer.loanWeeks>0 {management!.loans.append(PlayerLoan(playerID:player.id,ownerID:clubID,returnWeek:management!.elapsed+offer.loanWeeks,wageShare:wageShare))}
             players[p].clubID=offer.clubID;transact("\(offer.loanWeeks>0 ? "Loaned":"Sold") \(player.name)",offer.fee);clearDepartingPlayer(player.id);autoSelect()
         }else{
             guard player.clubID==offer.clubID,cash>=offer.fee+offer.signingFee else{return false}
             if let swap=offer.swapPlayer {
-                guard let index=players.firstIndex(where:{$0.id==swap && $0.clubID==clubID}),squad.count>16,states[swap]?.injuryWeeks==0 else{return false}
+                guard let index=players.firstIndex(where:{$0.id==swap && $0.clubID==clubID}),squad.count>16,states[swap]?.injuryWeeks==0,canRelease(swap) else{return false}
                 players[index].clubID=offer.clubID;lineup.removeAll{$0==swap};autoSelect()
+                clearDepartingPlayer(swap)
             }
             if let fee=offer.appearanceFee,fee>0 {
                 if management!.obligations==nil{management!.obligations=[]}
                 management!.obligations!.append(TransferObligation(playerID:player.id,creditor:offer.clubID,appearances:0,threshold:offer.appearanceCount ?? 10,fee:fee))
             }
             if management!.playerBonuses==nil{management!.playerBonuses=[:]};management!.playerBonuses?[player.id]=offer.bonuses
-            if offer.loanWeeks>0 {management!.loans.append(PlayerLoan(playerID:player.id,ownerID:player.clubID,returnWeek:management!.elapsed+offer.loanWeeks))}
-            players[p].clubID=clubID;states[player.id]?.wage=offer.wage;states[player.id]?.contractYears=offer.years
+            if offer.loanWeeks>0 {management!.loans.append(PlayerLoan(playerID:player.id,ownerID:player.clubID,returnWeek:management!.elapsed+offer.loanWeeks,wageShare:wageShare))}
+            players[p].clubID=clubID
+            if offer.loanWeeks==0 {states[player.id]?.wage=offer.wage;states[player.id]?.contractYears=offer.years}
             transact("Signed \(player.name)",-(offer.fee+offer.signingFee))
         }
         management!.shortlist.removeAll{$0==player.id};management!.negotiations[n].stage="Completed";management!.negotiations[n].reply="Agreement signed. The squad, contract and club accounts have been updated.";post("TRANSFER","Transfer completed: \(player.name)","The agreement has been signed following your final approval.");return true
@@ -219,6 +255,7 @@ public extension Career {
         initializeManagement();guard let i=management!.deals.firstIndex(where:{$0.id==id}),!management!.deals[i].accepted else{return false}
         let kind=management!.deals[i].kind
         guard kind != "Club sponsor" || !management!.deals.contains(where:{$0.kind==kind && $0.accepted}) else{return false}
+        guard kind != "Pitch boards" || acceptedPitchBoardCount < Self.pitchBoardCapacity else{return false}
         management!.deals[i].accepted=true;management!.deals[i].remaining=management!.deals[i].term
         if kind=="Club sponsor" {sponsor=management!.deals[i].brand;sponsorship=0}
         return true
@@ -260,9 +297,17 @@ public extension Career {
             let report=management!.scouts[i];guard let p=players.first(where:{$0.id==report.playerID}),let s=management!.staff.first(where:{$0.id==report.scoutID && $0.employed}) else{continue}
             let error=max(2,(100-s.quality)/5);management!.scouts[i].low=max(0,p.rating-error);management!.scouts[i].high=min(99,p.rating+error);management!.scouts[i].text="\(s.name): estimated ability \(max(0,p.rating-error))–\(min(99,p.rating+error)). Strongest skill: \(p.skills.max() ?? 0)."
             if (p.age(season:season) ?? 27)<21,let d=p.development {let peak=d.ceilings.max() ?? p.rating;management!.scouts[i].text += " Youth assessment: strongest skill could reach \(max(p.skills.max() ?? 0,peak-error))–\(min(99,peak+error)) with sustained development; not guaranteed."}
+            let rivals=clubs.filter{$0.id != clubID && $0.id != p.clubID && $0.country==club.country && $0.division <= max(0,p.rating > 70 ? 1:2)}.sorted{$0.division < $1.division}.prefix(p.rating >= 75 ? 2:1).map(\.name)
+            if !rivals.isEmpty {management!.scouts[i].text += " Competitor interest: \(rivals.joined(separator:", "))."}
             post("SCOUTING","Report on \(p.name)",management!.scouts[i].text)
         }
         for id in management!.negotiations.map(\.id) {_=reviewNegotiationReply(id,immediate:false)}
+        for loan in management!.loans {
+            guard let player=players.first(where:{$0.id==loan.playerID}) else{continue}
+            let contribution=(states[player.id]?.wage ?? player.wage)*(loan.wageShare ?? 100)/100
+            if loan.ownerID==clubID && player.clubID != clubID {transact("Loan wage contribution: \(player.name)",contribution)}
+            if player.clubID==clubID && loan.ownerID != clubID {transact("Loan wages: \(player.name)",-contribution)}
+        }
         for (id,price) in management!.listed.sorted(by:{$0.key<$1.key}) {
             guard let p=squad.first(where:{$0.id==id}),!management!.negotiations.contains(where:{$0.playerID==id && !$0.closed}),rng.unit()<0.35*min(1,Double(p.value)/Double(max(1,price))) else{continue}
             let buyers=clubs.filter{$0.id != clubID && $0.country==club.country};guard !buyers.isEmpty else{continue};let buyer=buyers[rng.int(0...buyers.count-1)]
@@ -272,7 +317,7 @@ public extension Career {
             guard let p=squad.first(where:{$0.id==id}),canRelease(id),!management!.negotiations.contains(where:{$0.playerID==id && !$0.closed}),rng.unit()<0.35 else{continue}
             let buyers=clubs.filter{$0.id != clubID && $0.country==club.country};guard !buyers.isEmpty else{continue}
             let buyer=buyers[rng.int(0...buyers.count-1)]
-            var offer=Negotiation(player:p,week:now,selling:true,loanWeeks:weeks);offer.clubID=buyer.id;offer.fee=0;offer.signingFee=0;offer.stage="Final review";offer.reply="\(buyer.name) request a \(weeks)-week loan and will pay the player's wages. Accept or withdraw.";management!.negotiations.append(offer)
+            var offer=Negotiation(player:p,week:now,selling:true,loanWeeks:weeks);offer.clubID=buyer.id;offer.fee=max(0,p.value/20);offer.signingFee=0;offer.loanWageShare=[50,75,100][rng.int(0...2)];offer.stage="Final review";offer.reply="\(buyer.name) request a \(weeks)-week loan, offering \(offer.loanWageShare ?? 100)% of the player's wages plus £\(offer.fee.formatted()). Accept or withdraw.";management!.negotiations.append(offer)
             post("NEGOTIATIONS","Loan offer: \(p.name)",offer.reply)
         }
         for loan in management!.loans where loan.returnWeek<=now {

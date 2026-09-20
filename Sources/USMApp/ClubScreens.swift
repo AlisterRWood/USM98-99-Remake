@@ -73,7 +73,7 @@ struct CompetitionScreen:View {
     @ViewState var league=""
     @ViewState var opponent=""
     var body:some View {TeletextPanel(title:tab,league:league) {
-        HStack {GameChoice(label:"View",value:$tab,options:["League","Results","Top scorers","Form","Fixtures","Cups","Trophies","Friendlies"]);GameChoice(label:"League",value:$league,options:Array(Set(store.career.clubs.map(\.league))).sorted())}
+        HStack {GameChoice(label:"View",value:$tab,options:["League","Results","Top scorers","Form","Fixtures","Cups","Trophies","Season recap","Friendlies"]);GameChoice(label:"League",value:$league,options:Array(Set(store.career.clubs.map(\.league))).sorted())}
         if tab=="League" {
             HStack {Text("Club").frame(maxWidth:.infinity,alignment:.leading);ForEach(["P","W","D","L","GF","GA","Pts"],id:\.self){Text($0).frame(width:55)}}.foregroundStyle(mint)
             ScrollView {LazyVStack(spacing:1) {ForEach(Array(store.career.table(league:league).enumerated()),id:\.element.id) {i,r in HStack {Text("\(i+1)  "+store.career.name(r.id)).frame(maxWidth:.infinity,alignment:.leading);ForEach(Array([r.played,r.won,r.drawn,r.lost,r.scored,r.conceded,r.points].enumerated()),id:\.offset) {_,value in Text("\(value)").frame(width:55)}}.padding(6).background(r.id==store.career.clubID ? crimson:.black.opacity(0.2))}}}
@@ -97,6 +97,8 @@ struct CompetitionScreen:View {
             ScrollView {LazyVStack(alignment:.leading) {ForEach(store.career.cups ?? []) {cup in Text(cup.name+" · Round \(cup.round)").font(.headline).foregroundStyle(mint);ForEach(store.career.fixtures.filter{cup.fixtureIDs.contains($0.id)}) {f in fixtureRow(f)}}}}
         }else if tab=="Trophies" {
             ScrollView {LazyVStack {ForEach(store.career.trophies ?? []) {t in HStack {Text("Season \(t.season) · "+t.competition);Spacer();Text(store.career.name(t.winner)).foregroundStyle(mint);Text("Runner-up: "+store.career.name(t.runnerUp)).foregroundStyle(muted)}.padding(8)}}}
+        }else if tab=="Season recap" {
+            SeasonRecapDataView()
         }else{
             GameChoice(label:"Opponent",value:$opponent,options:store.career.clubs.filter{$0.country==store.career.club.country && $0.id != store.career.clubID}.map(\.name))
             Text("Invite a club for a home friendly before the next scheduled fixture. Existing fixtures move to the following date.").foregroundStyle(mint)
@@ -105,4 +107,43 @@ struct CompetitionScreen:View {
         }
     }.onAppear {tab=initialTab;league=store.career.club.league;opponent=store.career.clubs.first{$0.country==store.career.club.country && $0.id != store.career.clubID}?.name ?? ""}}
     func fixtureRow(_ f:Fixture)->some View {HStack {Text("W\(f.round+1)").frame(width:45);Text(store.career.name(f.home)).frame(maxWidth:.infinity,alignment:.trailing);Text(f.played ? "\(f.homeGoals!)–\(f.awayGoals!)":"v").frame(width:50).foregroundStyle(mint);Text(store.career.name(f.away)).frame(maxWidth:.infinity,alignment:.leading);Text(f.competition==nil ? "League":(f.competition=="Friendly" ? "Friendly":"Cup")).frame(width:65)}.padding(6).background(.black.opacity(0.15))}
+}
+
+struct SeasonRecapDataView: View {
+    @EnvironmentObject var store: GameStore
+    var body: some View {
+        VStack(alignment:.leading,spacing:10) {
+            Text("END OF SEASON ARCHIVE").font(.headline).foregroundStyle(mint)
+            if let recap = store.career.seasonRecaps?.first {
+                Text("Season \(recap.season) · \(recap.club) · Prize money £\(recap.totalPrize.formatted())").foregroundStyle(.yellow)
+                ScrollView { LazyVStack(alignment:.leading,spacing:4) {
+                    Text("COMPETITIONS").foregroundStyle(.cyan)
+                    ForEach(recap.competitions) { row in HStack { Text(row.name).frame(maxWidth:.infinity,alignment:.leading);Text(row.position).frame(width:150,alignment:.leading);Text("£\(row.prize.formatted())").frame(width:110,alignment:.trailing).foregroundStyle(.yellow) }.padding(5).background(.black.opacity(0.18)) }
+                    Text("PLAYERS").foregroundStyle(.cyan).padding(.top,8)
+                    ForEach(recap.players) { player in HStack { Text(player.name).frame(maxWidth:.infinity,alignment:.leading);Text(player.position).frame(width:60);Text("\(player.appearances) apps").frame(width:90);Text("\(player.goals) goals").frame(width:90).foregroundStyle(.yellow) }.padding(4) }
+                }}
+            } else { Text("No completed season has been archived yet.").foregroundStyle(muted) }
+            Text("OFFICIAL 1998–99 COMPETITION CATALOGUE").foregroundStyle(.cyan).padding(.top,8)
+            ScrollView(.horizontal,showsIndicators:false) { HStack(alignment:.top,spacing:18) {
+                ForEach(CompetitionNames.domesticCups.keys.sorted(),id:\.self) { country in VStack(alignment:.leading) { Text(country).foregroundStyle(mint); ForEach(CompetitionNames.domesticCups[country] ?? [],id:\.self) { Text($0).font(.caption) }; Text(CompetitionNames.league(country:country,division:0)).font(.caption).foregroundStyle(.yellow) } }
+                VStack(alignment:.leading) { Text("Europe").foregroundStyle(mint); ForEach(CompetitionNames.europeanCups,id:\.self) { Text($0).font(.caption) } }
+            }}
+            Spacer()
+        }.padding(12)
+    }
+}
+
+struct EndOfSeasonView: View {
+    @EnvironmentObject var store: GameStore
+    var recap: SeasonRecap { store.career.currentSeasonRecap }
+    var body: some View {
+        ClassicDialog(title:"End of Season · \(recap.season)") {
+            HStack { VStack(alignment:.leading) { Text(recap.club).font(.title2.bold()).foregroundStyle(mint);Text("Season recap and prize-money statement").foregroundStyle(muted) }; Spacer();Text("TOTAL PRIZE MONEY\n£\(recap.totalPrize.formatted())").multilineTextAlignment(.trailing).foregroundStyle(.yellow).bold() }
+            HStack(alignment:.top,spacing:14) {
+                VStack(alignment:.leading) { Text("COMPETITIONS").foregroundStyle(.cyan);ScrollView {LazyVStack(alignment:.leading) {ForEach(recap.competitions) { row in HStack {Text(row.name).lineLimit(1).frame(maxWidth:.infinity,alignment:.leading);Text(row.position).frame(width:105,alignment:.leading);Text("£\(row.prize.formatted())").frame(width:90,alignment:.trailing).foregroundStyle(.yellow)}.padding(5)}}}.frame(maxWidth:.infinity) }
+                VStack(alignment:.leading) { Text("PLAYERS").foregroundStyle(.cyan);ScrollView {LazyVStack(alignment:.leading) {ForEach(recap.players.prefix(18)) { player in HStack {Text(player.name).lineLimit(1).frame(maxWidth:.infinity,alignment:.leading);Text("\(player.goals) goals").foregroundStyle(.yellow)}.padding(5)}}}.frame(width:280) }
+            }.frame(height:390)
+            HStack { Button("View archived recap in Data") {store.endOfSeasonShown=false;store.enter("Data");store.page="Competitions"}; Spacer(); Button("Continue to next season") {store.continueFromSeasonRecap()}.keyboardShortcut(.defaultAction).padding(8).classicRibbon() }
+        }.padding(14)
+    }
 }

@@ -10,7 +10,7 @@ struct GroundManagementView:View {
     @ViewState var hovered:String?
     @ViewState var kind="Shop"
     @ViewState var movingID:String?
-    @ViewState var status="Click a building to enter. Scroll or pinch to zoom."
+    @ViewState var status="Click a building to enter."
     @ViewState var confirmDemolition=false
     @ViewState var standEditor=false
     @ViewState var facilityEditor=false
@@ -19,7 +19,12 @@ struct GroundManagementView:View {
         VStack(spacing:0) {
             HStack(spacing:0) {
                 GroundSceneView(buildings:store.career.groundBuildings,showPlots:editing,selected:selectedID.map{"building:\($0)"},onPick:pick,onHover:{hovered=$0})
-                    .overlay(alignment:.bottomLeading) {Text("LIVE 3D GROUND · SCROLL OR PINCH TO ZOOM").font(.system(size:8,weight:.bold,design:.monospaced)).tracking(1).padding(10).background(.black.opacity(0.55),in:Capsule()).padding(16)}
+                    .overlay(alignment:.topLeading) {
+                        if hovered != nil {
+                            Text(hoverText).font(.system(size:12,weight:.semibold)).foregroundStyle(.white).lineLimit(2).padding(.horizontal,12).padding(.vertical,8).background(Color(red:0.42,green:0.07,blue:0.055),in:RoundedRectangle(cornerRadius:5)).padding(16)
+                        }
+                    }
+                    .overlay(alignment:.bottomLeading) {Text("LIVE 3D GROUND · FULL VIEW").font(.system(size:8,weight:.bold,design:.monospaced)).tracking(1).padding(10).background(.black.opacity(0.55),in:Capsule()).padding(16)}
             }
             HStack(spacing:20) {
                 VStack(alignment:.leading,spacing:4) {Text(store.career.club.stadium).font(.system(size:21,weight:.bold,design:.serif));Text("\(store.career.capacity.formatted()) SEATS · \(store.career.groundBuildings.filter{$0.isBuilding}.count) PROJECTS UNDERWAY").font(.system(size:9,weight:.bold)).tracking(1).foregroundStyle(muted)}
@@ -54,7 +59,10 @@ struct GroundManagementView:View {
         if let hovered=hovered {
             if hovered=="pitch" {return "The pitch · Enter the dressing room"}
             if hovered.hasPrefix("plot:") {return "Vacant plot · \(movingID==nil ? "Select a site for your new facility":"Click to move the selected building here")"}
-            if let b=store.career.groundBuildings.first(where:{"building:\($0.id)"==hovered}) {return "\(b.title) · \(b.isBuilding ? "Under construction; \(max(0,(b.dueWeek ?? 0)-store.career.week)) weeks remaining":(editing ? "Click to manage":"Click to enter"))"}
+            if let b=store.career.groundBuildings.first(where:{"building:\($0.id)"==hovered}) {
+                if b.isBuilding {return "\(b.title) · Under construction; \(max(0,(b.dueWeek ?? 0)-store.career.week)) weeks remaining"}
+                return "\(b.title) · Click to open \(b.destination)"
+            }
         }
         return status
     }

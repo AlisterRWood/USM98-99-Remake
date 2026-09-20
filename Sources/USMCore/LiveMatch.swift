@@ -47,6 +47,10 @@ public struct BallFlight: Codable, Equatable {
     public var receiver: String?
     public var side: Int
     public var onTarget: Bool
+    public var offsideReceiver: String? = nil
+    public init(from:FieldPoint,target:FieldPoint,progress:Double,duration:Double,kind:String,kicker:String,receiver:String?,side:Int,onTarget:Bool,offsideReceiver:String?=nil) {
+        self.from=from;self.target=target;self.progress=progress;self.duration=duration;self.kind=kind;self.kicker=kicker;self.receiver=receiver;self.side=side;self.onTarget=onTarget;self.offsideReceiver=offsideReceiver
+    }
 }
 /// Fixed-step, possession-based spatial simulation. No result is generated ahead of play.
 public struct LiveMatch: Codable {
@@ -86,8 +90,10 @@ public struct LiveMatch: Codable {
     public var lastTackle = 0.0
     public var physicsTime = 0.0
     public var setPieceRestart:SetPieceRestart?
+    public var pendingRestart:SetPieceRestart?
     public var previousPasser:String?
     public var deadBallDelay:Double?
+    public var goalkeeperResetDelay:Double?
     public var yellowCards:[String:Int]?
     public var pendingSubstitutions:[PendingSubstitution]?
     public var replayFrames:[ReplayFrame]?
@@ -160,11 +166,22 @@ public struct LiveMatch: Codable {
         let first=phase != .secondHalf && phase != .fullTime
         return (side == 0) == first ? 1:-1
     }
+    func planInstructions(_ tactics:Tactics,withBall:Bool,setPlay:String?=nil) -> [TacticalInstruction]? {
+        if let setPlay {
+            let key="\(withBall ? "Attacking":"Defending") \(setPlay)"
+            if let instructions=tactics.plan?.states[key] {return instructions}
+            if let instructions=tactics.plan?.states["\(withBall ? "Attack":"Defend") \(setPlay)"] {return instructions}
+        }
+        let zone=min(3,max(0,Int(ball.x/26.25)))*3+min(2,max(0,Int(ball.y/(68.0/3))))+1
+        return tactics.plan?.states["\(withBall ? "Attack":"Defend") zone \(zone)"]
+    }
+    func tacticalInstruction(for player:MatchPlayer,side:Int,withBall:Bool) -> TacticalInstruction? {
+        let tactics=side == 0 ? homeTactics:awayTactics
+        return planInstructions(tactics,withBall:withBall,setPlay:activeSetPlay).flatMap { player.slot < $0.count ? $0[player.slot] : nil }
+    }
     public func formationPoint(slot:Int,side:Int,withBall:Bool) -> FieldPoint {
         let t=side == 0 ? homeTactics:awayTactics
-        if let setPlay=activeSetPlay,let instructions=t.plan?.states["\(withBall ? "Attacking":"Defending") \(setPlay)"],slot<instructions.count {let p=instructions[slot].point;return FieldPoint(direction(side)>0 ? p.x:105-p.x,p.y)}
-        let zone=min(3,max(0,Int(ball.x/26.25)))*3+min(2,max(0,Int(ball.y/(68.0/3))))+1
-        if let instructions=t.plan?.states["\(withBall ? "Attack":"Defend") zone \(zone)"],slot<instructions.count {
+        if let instructions=planInstructions(t,withBall:withBall,setPlay:activeSetPlay),slot<instructions.count {
             let p=instructions[slot].point;return FieldPoint(direction(side)>0 ? p.x:105-p.x,p.y)
         }
         if let positions=t.customPositions,positions.count==11,slot<11 {
@@ -187,7 +204,7 @@ public struct LiveMatch: Codable {
         return FieldPoint(direction(side)>0 ? x:105-x,y).clamped()
     }
     mutating func resetPositions(kickingSide:Int) {
-        activeSetPlay=nil;setPieceRestart=nil;previousPasser=nil
+        activeSetPlay=nil;setPieceRestart=nil;pendingRestart=nil;deadBallDelay=nil;previousPasser=nil
         activeSetPlay="kick off";flight=nil;owner=nil;holdTime=0;attackCount=0;ball=FieldPoint(52.5,34)
         for i in players.indices where players[i].onPitch {
             var p=formationPoint(slot:players[i].slot,side:players[i].side,withBall:players[i].side==kickingSide)
@@ -198,6 +215,33 @@ public struct LiveMatch: Codable {
         if let index=players.indices.first(where:{players[$0].side == kickingSide && players[$0].onPitch && players[$0].slot==10}) {
             players[index].point=ball;owner=players[index].id
         }
+    }
+    public func defensiveShapeTarget(for player:MatchPlayer, side:Int, threat:FieldPoint, rank:Int) -> FieldPoint {
+        let tactics=side == 0 ? homeTactics:awayTactics
+        let d=direction(side)
+        let base=formationPoint(slot:player.slot,side:side,withBall:false)
+        let parts=tactics.formation.split(separator:"-").compactMap{Int($0)}
+        let defenders=parts.first ?? 4
+        let compactness=(tactics.formation == "5-3-2" ? 0.82:(tactics.formation == "4-4-2" ? 0.70:(tactics.formation == "3-5-2" ? 0.61:0.52))) + (tactics.mentality == "Defensive" ? 0.11:(tactics.mentality == "Attacking" ? -0.08:0))
+        let pressing=defensivePressing(side:side)
+        let danger=max(0,min(1,(threat.x*d-18)/70))
+        let ownGoal=FieldPoint(d>0 ? 4:101,34)
+        if rank == 0 { return threat.moved(toward:ownGoal,distance:max(0.8,2.9-pressing*0.7)).clamped() }
+        if rank == 1 { return threat.moved(toward:ownGoal,distance:8.0+compactness*7.0).clamped() }
+        let linePull=(1-compactness)*10 + (1-danger)*5
+        var target=base.moved(toward:threat,distance:min(18,base.distance(to:threat)*compactness)).moved(toward:ownGoal,distance:linePull)
+        let spread=Double((player.slot-1)%max(1,defenders))-Double(max(0,defenders-1))/2
+        target.y += spread*(2.2+compactness*2.5)
+        if tactics.offsideTrap ?? false { target=target.moved(toward:threat,distance:2.5) }
+        return target.clamped()
+    }
+    func defensivePressing(side:Int) -> Double {
+        let tactics=side == 0 ? homeTactics:awayTactics
+        var value=tactics.mentality == "Attacking" ? 1.45:(tactics.mentality == "Defensive" ? 0.85:1.15)
+        if tactics.tackling == "Hard" {value += 0.28}
+        if tactics.tackling == "Cautious" {value -= 0.18}
+        if tactics.offsideTrap ?? false {value += 0.18}
+        return value
     }
     mutating func record(_ kind:String,_ text:String,side:Int?=nil,player:String?=nil) {
         events.append(LiveEvent(id:events.count,minute:clockMinute,kind:kind,text:text,side:side,playerID:player,homeScore:homeGoals,awayScore:awayGoals))
@@ -225,12 +269,44 @@ public struct LiveMatch: Codable {
         guard phase == .firstHalf || phase == .secondHalf else {return}
         let dt=min(0.1,max(0,dt));physicsTime += dt;elapsed += dt*8
         captureReplay()
-        if setPieceRestart != nil {stepRestart(dt);return}
-        if let delay=deadBallDelay,delay>0 {deadBallDelay=max(0,delay-dt);return}
         if phase == .firstHalf && elapsed>=2700 {
-            elapsed=2700;phase = .halfTime;applyPendingSubstitutions();flight=nil;record("whistle","Half-time. Make your changes, then start the second half.");return
+            elapsed=2700;phase = .halfTime;applyPendingSubstitutions();flight=nil;setPieceRestart=nil;pendingRestart=nil;deadBallDelay=nil;goalkeeperResetDelay=nil;record("whistle","Half-time. Make your changes, then start the second half.");return
         }
-        if elapsed>=5400 {if knockout==true && homeGoals==awayGoals {penaltyShootout()};elapsed=5400;phase = .fullTime;flight=nil;record("whistle","Full-time. \(homeGoals)–\(awayGoals). The referee ends the match.");return}
+        if elapsed>=5400 {
+            if knockout==true && homeGoals==awayGoals {penaltyShootout()}
+            elapsed=5400;phase = .fullTime;flight=nil;setPieceRestart=nil;pendingRestart=nil;deadBallDelay=nil;goalkeeperResetDelay=nil;record("whistle","Full-time. \(homeGoals)–\(awayGoals). The referee ends the match.");return
+        }
+        if setPieceRestart != nil {stepRestart(dt);return}
+        if let delay=goalkeeperResetDelay,delay>0 {
+            let keeperSide=owner.flatMap { id in players.first { $0.id == id }?.side } ?? restartSide
+            for i in players.indices where players[i].onPitch && players[i].side != keeperSide && players[i].slot != 0 {
+                let d=direction(players[i].side)
+                let target=FieldPoint(players[i].point.x-d*10,players[i].point.y).clamped()
+                players[i].point=players[i].point.moved(toward:target,distance:runningSpeed(players[i],carrying:false)*dt)
+            }
+            goalkeeperResetDelay=max(0,delay-dt)
+            if (goalkeeperResetDelay ?? 0) <= 0,
+               let keeper=players.firstIndex(where:{$0.id==owner && $0.onPitch && $0.slot==0}) {
+                goalkeeperResetDelay=nil
+                if activeSetPlay != "keeper save" {
+                    prepareRestart(kind:"goal kick",side:players[keeper].side,taker:keeper,spot:players[keeper].point)
+                } else {
+                    activeSetPlay=nil
+                    record("restart","\(players[keeper].name) releases the ball after the save.",side:players[keeper].side,player:players[keeper].id)
+                }
+            }
+            return
+        }
+        if let delay=deadBallDelay {
+            if delay>0 {deadBallDelay=max(0,delay-dt);return}
+            if let pending=pendingRestart,
+               let taker=players.firstIndex(where:{$0.id==pending.taker && $0.onPitch}) {
+                pendingRestart=nil
+                prepareRestart(kind:pending.kind,side:pending.side,taker:taker,spot:restartSpot(for:pending))
+                return
+            }
+            deadBallDelay=nil
+        }
         if restartDelay>0 {
             applyPendingSubstitutions()
             restartDelay -= dt
@@ -251,12 +327,12 @@ public struct LiveMatch: Codable {
                 if p.slot==0 {target=p.point}
             } else if p.side != owningSide {
                 if p.slot==0 {target=FieldPoint(direction(p.side)>0 ? 3:102, min(40,max(28,34+(ball.y-34)*0.22)))}
-                else if defending.prefix(2).contains(i) {target=ball}
+                else if let rank=defending.firstIndex(of:i) {target=defensiveShapeTarget(for:p,side:p.side,threat:ball,rank:rank)}
             } else if flight?.receiver==p.id {target=flight!.target.clamped()}
             // Formations describe each player's starting reference, not a rail to stand on.
             // Away from the ball, players create passing angles, make late runs and recover
             // into the space that is actually under threat.
-            if !owns && flight?.receiver != p.id && !(p.side != owningSide && defending.prefix(1).contains(i)) { target=openPlayTarget(for:p,base:target,owningSide:owningSide) }
+            if !owns && flight?.receiver != p.id && p.side == owningSide { target=openPlayTarget(for:p,base:target,owningSide:owningSide) }
             if p.slot==0 {target=goalkeeperTarget(p)}
             let pace=runningSpeed(p,carrying:owns)
             players[i].point=p.point.moved(toward:target,distance:pace*dt).clamped()
@@ -268,12 +344,32 @@ public struct LiveMatch: Codable {
             flight=f
             if f.kind=="pass" && f.progress>0.18 && f.progress<0.94,
                let defender=players.indices.filter({players[$0].onPitch && players[$0].side != f.side}).min(by:{players[$0].point.distance(to:ball)<players[$1].point.distance(to:ball)}),
-               players[defender].point.distance(to:ball)<1.6 {
-                owner=players[defender].id;flight=nil;ball=players[defender].point;holdTime=0;attackCount=0
-                record("interception","\(players[defender].name) cuts out the pass.",side:players[defender].side,player:owner)
-                return
+               players[defender].point.distance(to:ball)<1.05+defensivePressing(side:players[defender].side)*0.52 {
+                let skill=Double(players[defender].skills.indices.contains(2) ? players[defender].skills[2]:50)
+                if rng.unit() < min(0.88,0.18+skill/220+defensivePressing(side:players[defender].side)*0.025) {
+                    owner=players[defender].id;flight=nil;ball=players[defender].point;holdTime=0;attackCount=0
+                    record("interception","\(players[defender].name) cuts out the pass.",side:players[defender].side,player:owner)
+                    return
+                }
             }
-            if f.progress>=1 {resolveFlight(f)}
+            if f.kind=="pass",f.offsideReceiver != nil,f.progress>=1 {
+                let side=1-f.side
+                let taker=players.firstIndex(where:{$0.side==side && $0.onPitch && $0.slot != 0}) ?? players.firstIndex(where:{$0.side==side && $0.onPitch})
+                if let taker {
+                    ball=f.target;flight=nil;owner=players[taker].id;holdTime=0
+                    prepareRestart(kind:"offside",side:side,taker:taker,spot:f.target)
+                    let attacker=players.first{$0.id==f.offsideReceiver}?.name ?? "The attacker"
+                    record("offside","Offside! "+attacker+" was beyond the last defender when the pass was played.",side:f.side,player:f.offsideReceiver)
+                    return
+                }
+            }
+            if f.progress>=1 {
+                if f.kind == "pass", (f.target.y < 0 || f.target.y > 68) {
+                    awardThrowIn(lastTouchSide:f.side,spot:outOfBoundsSpot(for:f))
+                } else {
+                    resolveFlight(f)
+                }
+            }
             return
         }
         guard let oi=players.firstIndex(where:{$0.id==owner && $0.onPitch}) else {
@@ -285,20 +381,26 @@ public struct LiveMatch: Codable {
         }
         ball=players[oi].point;holdTime += dt
         let carrier=players[oi],d=direction(carrier.side),distance=d>0 ? 105-ball.x:ball.x
+        let instruction=tacticalInstruction(for:carrier,side:carrier.side,withBall:true)
+        let action=instruction?.action.lowercased() ?? "move"
         if physicsTime-lastTackle>1.2,holdTime>0.5,let di=defending.first,players[di].point.distance(to:ball)<1.7 {
             lastTackle=physicsTime
             let tackler=players[di]
             let t=tackler.side==0 ? homeTactics:awayTactics
             if rng.unit()<(t.tackling=="Hard" ? 0.20:(t.tackling=="Cautious" ? 0.035:0.08)) {awardFoul(offender:di,victim:oi);return}
-            let chance=0.34+Double(tackler.skills[1]-carrier.skills[8])/180+(t.tackling=="Hard" ? 0.12:0)
+            let chance=0.30+Double(tackler.skills[1]-carrier.skills[8])/180+defensivePressing(side:tackler.side)*0.045+(t.tackling=="Hard" ? 0.12:0)
             if rng.unit()<chance {owner=tackler.id;holdTime=0;attackCount=0;record("tackle","\(tackler.name) wins the ball.",side:tackler.side,player:tackler.id);return}
         }
         let pressure=defending.first.map{players[$0].point.distance(to:ball)} ?? 20
         let tactics=carrier.side==0 ? homeTactics:awayTactics
-        let shotRange=carrier.role == "FWD" ? 29.0:(carrier.role == "MID" ? 27.0:24.0)
-        let centralEnough=abs(ball.y-34) < (carrier.role == "DEF" ? 20:25)
-        let roleWillingness=carrier.role == "FWD" ? 0.90:(carrier.role == "MID" ? 0.55:0.28)
+        let shotRange=carrier.role == "FWD" ? 31.0:(carrier.role == "MID" ? 34.0:29.0)
+        let centralEnough=abs(ball.y-34) < (carrier.role == "DEF" ? 23:27)
+        let roleWillingness=carrier.role == "FWD" ? 0.82:(carrier.role == "MID" ? 0.78:0.48)
         let earnedLook=attackCount>=2 && distance < shotRange-2
+        if action == "wait" && holdTime < 2.1 && pressure > 2.2 { return }
+        if action == "dribble" && pressure > 2.0 && distance > 12 { return }
+        if action == "pass" && holdTime > 0.35 { pass(oi,preferredSlot:instruction?.targetSlot);return }
+        if action == "shoot" && carrier.slot != 0 && distance < shotRange+3 && centralEnough { shoot(oi);return }
         if carrier.slot != 0 && distance<shotRange && centralEnough && holdTime>0.45 && (distance<13 || earnedLook || rng.unit()<dt*(roleWillingness+Double(carrier.skills[3])/90)) {
             shoot(oi);return
         }
@@ -308,13 +410,16 @@ public struct LiveMatch: Codable {
         if runningLane && holdTime<carryLimit {if holdTime>1.5 && holdTime<1.5+dt {record("dribble","\(carrier.name) drives towards goal.",side:carrier.side,player:carrier.id)};return}
         if holdTime>wait || (pressure<3 && holdTime>0.9) || (carrier.slot==0 && holdTime>1.1) {pass(oi)}
     }
-    mutating func pass(_ oi:Int) {
+    mutating func pass(_ oi:Int,preferredSlot:Int?=nil) {
         activeSetPlay=nil
         let p=players[oi],d=direction(p.side),t=p.side==0 ? homeTactics:awayTactics
         let teammates=players.indices.filter{players[$0].onPitch && players[$0].side==p.side && $0 != oi && players[$0].point.distance(to:p.point)>4}
         guard !teammates.isEmpty else {return}
         var best=teammates[0],bestScore = -Double.infinity
+        if let preferredSlot,preferredSlot >= 0,preferredSlot < 11,
+           let preferred=teammates.first(where:{players[$0].slot == preferredSlot}) { best=preferred }
         for i in teammates {
+            if preferredSlot != nil && i == best { continue }
             let target=players[i],distance=p.point.distance(to:target.point)
             let forward=(target.point.x-p.point.x)*d
             let space=players.filter{$0.onPitch && $0.side != p.side}.map{$0.point.distance(to:target.point)}.min() ?? 20
@@ -323,26 +428,39 @@ public struct LiveMatch: Codable {
             if score>bestScore {bestScore=score;best=i}
         }
         let receiver=players[best]
-        let defence=players.filter{$0.onPitch && $0.side != p.side}.map{$0.point.x*d}.sorted(by:>)
-        if defence.count>=2,receiver.point.x*d>defence[1],receiver.point.x*d>ball.x*d,receiver.point.x*d>(d>0 ? 52.5:-52.5) {
-            let opponents=players.indices.filter{players[$0].onPitch && players[$0].side != p.side}
-            if let nearest=opponents.min(by:{players[$0].point.distance(to:receiver.point)<players[$1].point.distance(to:receiver.point)}) {owner=players[nearest].id;ball=players[nearest].point;holdTime = -2;record("offside","Offside against \(receiver.name).",side:p.side,player:receiver.id);return}
-        }
         let leadership=t.captain.flatMap{id in players.first{$0.id==id && $0.onPitch}}.map{Double($0.skills[8])/100} ?? 0
         let error=max(0,Double(100-p.skills[2])/35-leadership*0.2)
         let lead=receiver.slot==0 ? 0:3.0
-        let target=FieldPoint(receiver.point.x+d*lead+(rng.unit()-0.5)*error,receiver.point.y+(rng.unit()-0.5)*error).clamped()
-        flight=BallFlight(from:ball,target:target,progress:0,duration:max(0.25,ball.distance(to:target)/(t.passing=="Direct" ? 27:21)),kind:"pass",kicker:p.id,receiver:receiver.id,side:p.side,onTarget:false)
+        var target=FieldPoint(receiver.point.x+d*lead+(rng.unit()-0.5)*error,receiver.point.y+(rng.unit()-0.5)*error)
+        if rng.unit() < min(0.10,error/160) {
+            target.y = rng.unit() < 0.5 ? -1.5-rng.unit()*2.5 : 69.5+rng.unit()*2.5
+        } else {
+            target=target.clamped()
+        }
+        let flaggedReceiver=offsideCandidate(passerIndex:oi,receiverIndex:best) ? receiver.id:nil
+        flight=BallFlight(from:ball,target:target,progress:0,duration:max(0.25,ball.distance(to:target)/(t.passing=="Direct" ? 27:21)),kind:"pass",kicker:p.id,receiver:receiver.id,side:p.side,onTarget:false,offsideReceiver:flaggedReceiver)
         previousPasser=p.id
         owner=nil;holdTime=0;attackCount += 1
         if p.side==0 {homePasses += 1} else {awayPasses += 1}
         record("pass","\(p.name) passes to \(receiver.name).",side:p.side,player:p.id)
     }
+    public func offsideCandidate(passerIndex:Int,receiverIndex:Int) -> Bool {
+        guard players.indices.contains(passerIndex),players.indices.contains(receiverIndex),passerIndex != receiverIndex else {return false}
+        let passer=players[passerIndex],receiver=players[receiverIndex],d=direction(passer.side)
+        let defence=players.filter{$0.onPitch && $0.side != passer.side && $0.slot != 0}.map{$0.point.x*d}.sorted(by:>)
+        let tactics=passer.side==0 ? homeTactics:awayTactics
+        let lineMargin=(tactics.offsideTrap ?? false) ? 1.2:2.8
+        return defence.count>=2 && receiver.point.x*d>defence[1]+lineMargin && receiver.point.x*d>ball.x*d+1.0 && receiver.point.x*d>(d>0 ? 52.5:-52.5)
+    }
     mutating func shoot(_ i:Int) {
         let p=players[i],d=direction(p.side),dist=p.point.distance(to:FieldPoint(d>0 ? 105:0,34))
         let setPiece=activeSetPlay=="free kick" || activeSetPlay=="penalty"
         let skill=setPiece ? (p.skills[3]+p.skills[7])/2:p.skills[3]
-        let accuracy=min(0.94,max(0.12,Double(skill)/105-dist/160))
+        let nearestDefender=players.filter{$0.onPitch && $0.side != p.side}.min(by:{$0.point.distance(to:p.point)<$1.point.distance(to:p.point)})
+        let pressure=nearestDefender.map{max(0,min(1,(5-p.point.distance(to:$0.point))/5))} ?? 0
+        let defensiveSkill=nearestDefender.map{Double($0.skills.indices.contains(1) ? $0.skills[1]:50)/100} ?? 0
+        let roleAccuracy=p.role == "FWD" ? 1.0:(p.role == "MID" ? 0.86:0.72)
+        let accuracy=min(0.94,max(0.12,(Double(skill)*roleAccuracy)/105-dist/185-pressure*(0.08+defensiveSkill*0.08)))
         activeSetPlay=nil
         let onTarget=rng.unit()<accuracy
         if onTarget {
@@ -373,18 +491,32 @@ public struct LiveMatch: Codable {
             let distance=f.from.distance(to:FieldPoint(direction(f.side)>0 ? 105:0,34))
             let keeping=keeper.map{Double(players[$0].skills[0])} ?? 30
             let shooting=Double(shooter?.skills[3] ?? 60)
-            let saveChance=min(0.91,max(0.25,0.42+keeping/220+distance/130-shooting/370))
-            if f.onTarget && rng.unit()>saveChance {
+            let nearestDefender=players.filter{$0.onPitch && $0.side != f.side && $0.slot != 0}.min(by:{$0.point.distance(to:f.from)<$1.point.distance(to:f.from)})
+            let pressure=nearestDefender.map{max(0,min(1,(5-f.from.distance(to:$0.point))/5))} ?? 0
+            let saveChance=min(0.84,max(0.32,0.54+keeping/360+distance/520-shooting/800+pressure*0.05))
+            let outcome=rng.unit()
+            if f.onTarget && outcome>saveChance {
                 if f.side==0 {homeGoals += 1} else {awayGoals += 1}
                 ball=f.target
                 record("goal","GOAL! \(shooter?.name ?? "A superb finish")!",side:f.side,player:f.kicker)
                 owner=nil;restartDelay=3.2;restartSide=1-f.side
-            } else if f.onTarget && rng.unit()<0.25 {
+            } else if f.onTarget && outcome<0.20 {
                 awardCorner(side:f.side,left:f.target.y<34)
+            } else if !f.onTarget {
+                awardGoalKick(side:1-f.side,spotY:f.target.y,outsideX:f.target.x)
+                record("miss","\(shooter?.name ?? "The shot") misses the target. Goal kick.",side:f.side,player:f.kicker)
             } else if let k=keeper {
-                if !f.onTarget {activeSetPlay="goal kick";deadBallDelay=1;applyPendingSubstitutions()}
-                owner=players[k].id;ball=players[k].point;holdTime=0;attackCount=0
-                record(f.onTarget ? "save":"miss",f.onTarget ? "\(players[k].name) makes the save!":"The shot goes wide. Goal kick.",side:1-f.side,player:players[k].id)
+                if f.onTarget && outcome < 0.45 {
+                    owner=nil
+                    ball=players[k].point.moved(toward:f.from,distance:3.2)
+                    holdTime=0;attackCount=0;goalkeeperResetDelay=nil;activeSetPlay=nil;deadBallDelay=nil
+                    record("rebound","\(players[k].name) parries the shot! The ball is loose.",side:1-f.side,player:players[k].id)
+                } else {
+                    owner=players[k].id;ball=players[k].point;holdTime=0;attackCount=0
+                    goalkeeperResetDelay=f.onTarget ? 0.8:0.4
+                    activeSetPlay=f.onTarget ? "keeper save":nil;deadBallDelay=nil;applyPendingSubstitutions()
+                    record("save","\(players[k].name) makes the save!",side:1-f.side,player:players[k].id)
+                }
             }
         }
         holdTime=0

@@ -4,15 +4,15 @@ let destination=CommandLine.arguments[1]
 let image=NSImage(size:NSSize(width:1024,height:1024))
 image.lockFocus()
 let rect=NSRect(x:45,y:45,width:934,height:934)
-NSColor(calibratedRed:0.04,green:0.08,blue:0.11,alpha:1).setFill()
+NSColor(calibratedRed:0.13,green:0.015,blue:0.02,alpha:1).setFill()
 NSBezierPath(roundedRect:rect,xRadius:200,yRadius:200).fill()
 let shield=NSBezierPath();shield.move(to:NSPoint(x:240,y:775));shield.line(to:NSPoint(x:784,y:775));shield.line(to:NSPoint(x:770,y:425));shield.curve(to:NSPoint(x:512,y:195),controlPoint1:NSPoint(x:750,y:315),controlPoint2:NSPoint(x:630,y:235));shield.curve(to:NSPoint(x:254,y:425),controlPoint1:NSPoint(x:390,y:235),controlPoint2:NSPoint(x:275,y:315));shield.close()
-NSColor(calibratedRed:0.67,green:0.91,blue:0.43,alpha:1).setFill();shield.fill()
+NSColor(calibratedRed:0.78,green:0.035,blue:0.025,alpha:1).setFill();shield.fill()
 let title="USM" as NSString
-let attrs:[NSAttributedString.Key:Any]=[.font:NSFont.systemFont(ofSize:145,weight:.black),.foregroundColor:NSColor(calibratedRed:0.04,green:0.08,blue:0.11,alpha:1)]
+let attrs:[NSAttributedString.Key:Any]=[.font:NSFont.systemFont(ofSize:145,weight:.black),.foregroundColor:NSColor.white]
 let size=title.size(withAttributes:attrs);title.draw(at:NSPoint(x:(1024-size.width)/2,y:495),withAttributes:attrs)
 let year="98 / 99" as NSString
-let small:[NSAttributedString.Key:Any]=[.font:NSFont.monospacedSystemFont(ofSize:50,weight:.bold),.foregroundColor:NSColor(calibratedRed:0.04,green:0.08,blue:0.11,alpha:1)]
+let small:[NSAttributedString.Key:Any]=[.font:NSFont.monospacedSystemFont(ofSize:50,weight:.bold),.foregroundColor:NSColor.white]
 let ys=year.size(withAttributes:small);year.draw(at:NSPoint(x:(1024-ys.width)/2,y:400),withAttributes:small)
 image.unlockFocus()
 try FileManager.default.createDirectory(atPath:destination,withIntermediateDirectories:true)

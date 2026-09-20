@@ -19,7 +19,7 @@ struct ArchiveView:View {
             if let row=store.career.table(league:club.league).first(where:{$0.id==club.id}) {Text("Played \(row.played)     Won \(row.won)     Drawn \(row.drawn)     Lost \(row.lost)     For \(row.scored)     Against \(row.conceded)     Points \(row.points)").monospacedDigit()}
             Text("Recent league history").font(.title3.bold()).foregroundStyle(mint)
             ScrollView {LazyVStack(alignment:.leading){if club.id==store.career.clubID {ForEach(store.career.history,id:\.self){Text($0).padding(6)}}}}
-            HStack {Button("Players") {store.page="Transfers"};Button("Fixtures / results") {store.page="Competitions"};Button("Trophy cabinet") {store.page="Trophies"}}
+            HStack {Button("Players") {store.page="Transfers"};Button("Fixtures / results") {store.page="Competitions"};Button("Season recap") {store.page="Season recap"};Button("Trophy cabinet") {store.page="Trophies"}}
         }.onAppear {clubName=store.career.club.name}
     }
     func bestResult(win:Bool)->String {

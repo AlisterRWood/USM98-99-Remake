@@ -62,6 +62,14 @@ struct FormationEditorScreen:View {
                 VStack(alignment:.leading,spacing:4) {
                     Text("Drag the shirt to set its position.").foregroundStyle(mint)
                     ForEach(Array(store.career.lineup.enumerated()),id:\.offset) {i,id in Button("\(i+1)  "+(store.career.players.first{$0.id==id}?.name ?? "Player")) {selected=i}.buttonStyle(GameButton(red:selected==i))}
+                    if advanced {
+                        Text("Selected player instruction").font(.caption).foregroundStyle(mint)
+                        GameChoice(label:"Action",value:Binding(get:{instructions.indices.contains(selected) ? instructions[selected].action:"Move"},set:{value in var list=instructions;if list.indices.contains(selected){list[selected].action=value;save(list)}}),options:["Move","Pass","Dribble","Wait","Shoot"])
+                        if instructions.indices.contains(selected) && instructions[selected].action == "Pass" {
+                            let playerNames=store.career.lineup.map { id in store.career.players.first(where:{ $0.id == id })?.name ?? "Player" }
+                            GameChoice(label:"Target",value:Binding(get:{let target=instructions[selected].targetSlot;return target >= 0 && target < playerNames.count ? playerNames[target]:"Any"},set:{value in var list=instructions;if list.indices.contains(selected){list[selected].targetSlot=playerNames.firstIndex(of:value) ?? -1;save(list)}}),options:["Any"]+playerNames)
+                        }
+                    }
                     Spacer(minLength:0)
                     HStack {Button("Copy") {clipboard=instructions};Button("Paste") {if let clipboard {undo=instructions;save(clipboard)}}.disabled(clipboard==nil)}
                     HStack {Button("Reset") {undo=instructions;if advanced {save(TacticalPlan.defaults(store.career.tactics))}else{store.career.tactics.customPositions=nil;store.save()}};Button("Undo") {if let undo {save(undo);self.undo=nil}}.disabled(undo==nil)}

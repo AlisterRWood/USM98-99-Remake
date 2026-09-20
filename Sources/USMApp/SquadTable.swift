@@ -109,3 +109,61 @@ struct SquadTable:NSViewRepresentable {
         }
     }
 }
+
+struct MatchdaySquadTable:NSViewRepresentable {
+    var players:[MatchPlayer]
+    @Binding var carried:String?
+    @Binding var highlighted:String?
+    var onSwap:(String,String)->Void
+
+    func makeCoordinator()->Coordinator {Coordinator(self)}
+    func makeNSView(context:Context)->NSScrollView {
+        let scroll=NSScrollView();scroll.hasVerticalScroller=true;scroll.hasHorizontalScroller=true
+        let table=SelectionTable();table.rowHeight=27;table.intercellSpacing=NSSize(width:0,height:1)
+        table.backgroundColor=NSColor(calibratedRed:0.07,green:0.10,blue:0.25,alpha:1)
+        table.headerView=NSTableHeaderView();table.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
+        for (id,title,width):(String,String,CGFloat) in [("number","No.",44),("name","Player",230),("role","Pos",52),("status","Matchday",112),("fitness","Fit",52)] {
+            let col=NSTableColumn(identifier:NSUserInterfaceItemIdentifier(id));col.title=title;col.width=width;col.minWidth=width;col.maxWidth=id=="name" ? 420:180;table.addTableColumn(col)
+        }
+        table.delegate=context.coordinator;table.dataSource=context.coordinator
+        scroll.documentView=table;context.coordinator.table=table
+        table.pickUp={row in let c=context.coordinator;guard row<c.rows.count else{return};c.parent.carried=c.rows[row].id;c.parent.highlighted=c.rows[row].id;c.setCursor()}
+        table.putDown={row in let c=context.coordinator;guard let source=c.parent.carried,row<c.rows.count else{return false};c.parent.onSwap(source,c.rows[row].id);c.parent.carried=nil;c.setCursor();return true}
+        table.cancelPick={let c=context.coordinator;c.parent.carried=nil;c.setCursor()}
+        return scroll
+    }
+    func updateNSView(_ view:NSScrollView,context:Context) {
+        let c=context.coordinator;c.parent=self;c.rows=players;c.table?.reloadData();c.setCursor()
+    }
+    class Coordinator:NSObject,NSTableViewDataSource,NSTableViewDelegate {
+        var parent:MatchdaySquadTable
+        var rows:[MatchPlayer]
+        weak var table:SelectionTable?
+        var cursorID:String?
+        init(_ parent:MatchdaySquadTable) {self.parent=parent;rows=parent.players}
+        func setCursor() {
+            guard cursorID != parent.carried else{return};cursorID=parent.carried
+            table?.carriedName=rows.first{$0.id==parent.carried}?.name;NSCursor.arrow.set()
+        }
+        func numberOfRows(in tableView:NSTableView)->Int {rows.count}
+        func tableViewSelectionDidChange(_ notification:Notification) {
+            guard let t=table,t.selectedRow>=0,t.selectedRow<rows.count else{return};parent.highlighted=rows[t.selectedRow].id
+        }
+        func tableView(_ tableView:NSTableView,viewFor tableColumn:NSTableColumn?,row:Int)->NSView? {
+            let p=rows[row],id=tableColumn!.identifier.rawValue
+            let text:String
+            switch id {
+            case "number":text=p.onPitch ? String(p.slot+1):"S"
+            case "name":text=p.name
+            case "role":text=p.role
+            case "status":text=p.onPitch ? "STARTING XI":(p.used ? "USED":"SUBSTITUTE")
+            case "fitness":text=String(Int(p.fitness))
+            default:text=""
+            }
+            let cell=NSTextField(labelWithString:text);cell.font = .monospacedSystemFont(ofSize:12,weight:id=="name" ? .semibold:.regular)
+            cell.textColor=p.used ? .systemGray:(p.onPitch ? .white:.systemOrange);cell.alignment = id=="name" ? .left:.center;cell.lineBreakMode = .byTruncatingTail
+            cell.toolTip=id=="name" ? "Right-click to pick up; left-click a substitute to replace this player.":tableColumn?.title
+            return cell
+        }
+    }
+}

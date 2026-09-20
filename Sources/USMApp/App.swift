@@ -4,6 +4,12 @@ import AppKit
 import AVFoundation
 import USMCore
 
+struct CareerSaveSummary:Identifiable {
+    let id:String
+    let url:URL
+    let career:Career
+}
+
 enum DatabaseOption: String, CaseIterable, Identifiable {
     case originalCD
     case megaUpdate
@@ -38,6 +44,7 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
     var matchStepAccumulator=0.0
     @Published var matchChoice = false
     @Published var matchControls = false
+    @Published var endOfSeasonShown = false
     @Published var matchCard:LiveEvent?
     private var matchCardExpiresAt=0.0
     @Published var hasSave = false
@@ -62,7 +69,7 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
         career=Career(database:startingDatabase,clubID:initial.id,manager:"Manager")
         let qaProfile=Bundle.main.bundleIdentifier?.hasSuffix(".qa") == true ? Bundle.main.object(forInfoDictionaryKey:"QAProfile") as? String:nil
         saveURL=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent(qaProfile.map{"USM98Native-QA/\($0)/career.json"} ?? (Bundle.main.bundleIdentifier?.hasSuffix(".usability.layout.qa") == true ? "USM98Native-UsabilityQA/career.json":Bundle.main.bundleIdentifier?.hasSuffix(".audio.layout.qa") == true ? "USM98Native-AudioQA/career.json":(Bundle.main.bundleIdentifier?.hasSuffix(".layout.qa") == true ? "USM98Native-LayoutQA/career.json":(Bundle.main.bundleIdentifier?.hasSuffix(".qa") == true ? "USM98Native-QA/career.json":"USM98Native/career.json"))))
-        hasSave=FileManager.default.fileExists(atPath:saveURL.path)
+        hasSave = !savedCareerSummaries().isEmpty
         timer=Timer.scheduledTimer(withTimeInterval:1.0/30,repeats:true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
@@ -76,8 +83,23 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
         do { try SaveStore.save(career,to:saveURL);hasSave=true }
         catch { message="Could not save: \(error.localizedDescription)" }
     }
+    func savedCareerSummaries()->[CareerSaveSummary] {
+        let urls=((try? FileManager.default.contentsOfDirectory(at:saveURL.deletingLastPathComponent(),includingPropertiesForKeys:nil)) ?? [])
+            .filter{$0.pathExtension=="json"}
+        return urls.compactMap { url in
+            guard let career=try? SaveStore.load(from:url) else {return nil}
+            return CareerSaveSummary(id:url.path,url:url,career:career)
+        }.sorted { a,b in
+            if a.career.season != b.career.season {return a.career.season > b.career.season}
+            if a.career.week != b.career.week {return a.career.week > b.career.week}
+            return a.url.lastPathComponent < b.url.lastPathComponent
+        }
+    }
     func loadCareer() {
-        do { career=try SaveStore.load(from:saveURL);restoreDatabaseMetadata();screen=career.activeMatch == nil ? "club":"match";room="Stadium";page="Stadium";matchRunning=false;audio.play("fl_load");audio.matchAmbience(career.activeMatch != nil) }
+        loadCareer(from:saveURL)
+    }
+    func loadCareer(from url:URL) {
+        do { career=try SaveStore.load(from:url);restoreDatabaseMetadata();endOfSeasonShown=career.seasonFinished;save();screen=career.activeMatch == nil ? "club":"match";room="Stadium";page="Stadium";matchRunning=false;audio.play("fl_load");audio.matchAmbience(career.activeMatch != nil) }
         catch { message="Could not load career: \(error.localizedDescription)" }
     }
     func restoreDatabaseMetadata() {
@@ -99,9 +121,15 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
     func advance() {
         if career.worldState.dismissed {screen="club";room="Manager’s office";page="Jobs";message="The board has dismissed you. Apply for a new appointment to continue your career.";return}
         guard career.activeMatch == nil else {screen="match";return}
-        if career.seasonFinished {career.nextSeason();save();return}
+        if career.seasonFinished {endOfSeasonShown=true;return}
         if career.fixtures.contains(where:{!$0.played && $0.round==career.week && ($0.home==career.clubID || $0.away==career.clubID)}) {screen="matchTunnel"}
         else {career.advanceWeek();save();page="Inbox"}
+    }
+
+    func continueFromSeasonRecap() {
+        career.nextSeason()
+        endOfSeasonShown=false
+        save()
     }
     func cancelMatchday() {
         matchChoice=false
@@ -138,7 +166,7 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
             let before=live.events.count
             live.step(0.1);matchStepAccumulator -= 1
             if let card=live.events.dropFirst(before).last(where:{$0.kind=="yellow" || $0.kind=="red"}) {
-                matchCard=card;matchCardExpiresAt=ProcessInfo.processInfo.systemUptime+3
+                matchCard=card;matchCardExpiresAt=ProcessInfo.processInfo.systemUptime+1.8
             }
         }
         for event in live.events.dropFirst(count) {audio.event(event.kind=="whistle" && (live.phase == .halfTime || live.isFinished) ? "end whistle":event.kind);audio.commentary(event.kind,name:event.playerID.flatMap{id in live.players.first{$0.id==id}?.name})}
@@ -151,7 +179,7 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
     func finishMatch() {
         guard let live=career.activeMatch,live.isFinished,
               career.fixtures.contains(where:{$0.id==live.fixtureID && !$0.played}) else {return}
-        career.advanceWeek(completedMatch:live);save();screen="club";room="Manager’s office";page="Match report";matchRunning=false;audio.matchAmbience(false)
+        career.advanceWeek(completedMatch:live);save();screen="club";room="Stadium";page="Stadium";matchRunning=false;audio.matchAmbience(false)
     }
     func instantRemainder() {
         guard career.activeMatch != nil else {return}
@@ -168,22 +196,11 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
         career.enableDomesticCups()
         newCareer=false;room="Stadium";page="Stadium";screen="club";save();audio.play("rm_stadium");audio.matchAmbience(false)
     }
-    func exportSave() {
-        let panel=NSSavePanel();panel.nameFieldStringValue="USM-career.json";panel.allowedContentTypes=[.json]
-        if panel.runModal() == .OK,let url=panel.url {do {try SaveStore.save(career,to:url)} catch {message=error.localizedDescription}}
-    }
-    func importSave() {
-        let panel=NSOpenPanel();panel.allowedContentTypes=[.json];panel.allowsMultipleSelection=false
-        if panel.runModal() == .OK,let url=panel.url {
-            do {career=try SaveStore.load(from:url);restoreDatabaseMetadata();save();screen=career.activeMatch == nil ? "club":"match";room="Stadium";page="Stadium";matchRunning=false}
-            catch {message="Save could not be opened: \(error.localizedDescription)"}
-        }
-    }
     func toggleMusic() {playingMusic.toggle();audio.musicEnabled=playingMusic;if playingMusic {audio.startMusic()} else {audio.music?.stop()}}
     func toggleSound() {soundEnabled.toggle();audio.enabled=soundEnabled;if !soundEnabled {audio.stopSpeech();audio.crowd?.pause()}else if screen=="match" {audio.matchAmbience(true)}}
     func quit() {
         matchRunning=false
-        save()
+        if screen != "title" {save()}
         audio.stop()
         NSApp.terminate(nil)
     }
@@ -198,8 +215,6 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
             CommandGroup(replacing:.newItem) { Button("New Career…") { store.matchRunning=false;store.newCareer=true }.keyboardShortcut("n") }
             CommandGroup(after:.newItem) {
                 Button("Save Career") { store.save() }.keyboardShortcut("s").disabled(store.screen == "title")
-                Button("Export Save…") { store.exportSave() }.disabled(store.screen == "title")
-                Button("Import Save…") { store.importSave() }.keyboardShortcut("o")
             }
         }
     }

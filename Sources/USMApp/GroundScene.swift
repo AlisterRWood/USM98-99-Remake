@@ -33,9 +33,6 @@ final class EstateSCNView:SCNView {
     // The ground has a fixed isometric viewpoint. Dragging is deliberately a
     // no-op so a click cannot accidentally orbit the stadium away from it.
     override func mouseDragged(with event:NSEvent) {}
-    override func scrollWheel(with event:NSEvent){zoom(Double(event.scrollingDeltaY)*0.7)}
-    override func magnify(with event:NSEvent){zoom(-Double(event.magnification)*100)}
-    private func zoom(_ delta:Double){guard let camera=pointOfView?.camera else{return};camera.orthographicScale=max(65,min(135,camera.orthographicScale+delta))}
     override func mouseUp(with event:NSEvent) {
         let point=convert(event.locationInWindow,from:nil)
         if hypot(point.x-downPoint.x,point.y-downPoint.y)<5,let id=item(at:point) {onPick?(id)}
@@ -64,10 +61,9 @@ struct GroundSceneView:NSViewRepresentable {
         view.onPick=onPick;view.onHoverItem=onHover
         if context.coordinator.buildings != buildings || context.coordinator.showPlots != showPlots {
             let transform=view.pointOfView?.transform
-            let scale=view.pointOfView?.camera?.orthographicScale
             view.scene=EstateRenderer.make(buildings:buildings,showPlots:showPlots)
             if let camera=view.scene?.rootNode.childNode(withName:"camera",recursively:true) {
-                if let transform=transform {camera.transform=transform};if let scale=scale {camera.camera?.orthographicScale=scale};view.pointOfView=camera
+                if let transform=transform {camera.transform=transform};camera.camera?.orthographicScale=135;view.pointOfView=camera
             }
             context.coordinator.buildings=buildings;context.coordinator.showPlots=showPlots
         }
@@ -136,7 +132,7 @@ enum EstateRenderer {
         }
         let ambient=SCNNode();ambient.light=SCNLight();ambient.light!.type = .ambient;ambient.light!.intensity=650;ambient.light!.color=NSColor(calibratedRed:0.83,green:0.89,blue:1,alpha:1);root.addChildNode(ambient)
         let sun=SCNNode();sun.light=SCNLight();sun.light!.type = .directional;sun.light!.intensity=1700;sun.light!.color=NSColor(calibratedRed:1,green:0.91,blue:0.75,alpha:1);sun.light!.castsShadow=true;sun.light!.shadowRadius=4;sun.light!.shadowMapSize=CGSize(width:2048,height:2048);sun.light!.orthographicScale=230;sun.eulerAngles=SCNVector3(-0.85,-0.5,0);root.addChildNode(sun)
-        let camera=SCNNode();camera.name="camera";camera.camera=SCNCamera();camera.camera!.usesOrthographicProjection=true;camera.camera!.orthographicScale=82;camera.camera!.zFar=1500;camera.position=SCNVector3(170,260,330);camera.look(at:SCNVector3(0,0.5,0));root.addChildNode(camera)
+        let camera=SCNNode();camera.name="camera";camera.camera=SCNCamera();camera.camera!.usesOrthographicProjection=true;camera.camera!.orthographicScale=135;camera.camera!.zFar=1500;camera.position=SCNVector3(170,260,330);camera.look(at:SCNVector3(0,0.5,0));root.addChildNode(camera)
         return scene
     }
     static func neighbourhood(_ root:SCNNode) {

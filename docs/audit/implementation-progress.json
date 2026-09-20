@@ -449,8 +449,8 @@
       "screen": "PLAYER SEARCH",
       "baseline_status": "Partial",
       "implementation_status": "reconstructed_partial",
-      "implemented": "Full-database pagination, many filters, nine skill minimums, shortlist and delayed scout reports.",
-      "remaining": "Nationality, first/reserve filter, per-skill maximums, potential/youth reports and competitor alerts.",
+      "implemented": "Full-database pagination, many filters, first-team/reserve filters, nine skill minimums and maximums, shortlist, delayed scout reports, competitor-interest alerts and scout-gated reconstructed potential estimates.",
+      "remaining": "Nationality, exact position decoding, potential calibration and historical competitor behaviour.",
       "evidence": [
         "Sources/USMApp/TransferScreens.swift",
         "Sources/USMCore/Management.swift"
@@ -462,8 +462,8 @@
       "screen": "CURRENT NEGOTIATIONS",
       "baseline_status": "Partial",
       "implementation_status": "reconstructed_partial",
-      "implemented": "Persistent staged negotiations, incoming listed bids, renewals, final approval, swap/appearance/bonus clauses, loans and return.",
-      "remaining": "AI market activity, configurable loans/wage split, all original sales/free-agent cases and varied interest/patience.",
+      "implemented": "Persistent staged negotiations, incoming listed bids, renewals, final approval, swap/appearance/bonus clauses, loans and return; AI listed/loan offers and configurable loan wage contributions.",
+      "remaining": "All original sales/free-agent cases and varied interest/patience calibration.",
       "evidence": [
         "Sources/USMCore/Management.swift",
         "Sources/USMCore/ContractTerms.swift",
@@ -476,8 +476,8 @@
       "screen": "SELLING PLAYERS",
       "baseline_status": "Partial",
       "implementation_status": "reconstructed_partial",
-      "implemented": "Persistent staged negotiations, incoming listed bids, renewals, final approval, swap/appearance/bonus clauses, loans and return.",
-      "remaining": "AI market activity, configurable loans/wage split, all original sales/free-agent cases and varied interest/patience.",
+      "implemented": "Persistent staged negotiations, incoming listed bids, renewals, final approval, swap/appearance/bonus clauses, loans and return; AI loan offers include fee and wage-share terms.",
+      "remaining": "All original loan edge cases and varied interest/patience calibration.",
       "evidence": [
         "Sources/USMCore/Management.swift",
         "Sources/USMCore/ContractTerms.swift",
@@ -504,8 +504,8 @@
       "screen": "SHORTLIST",
       "baseline_status": "Missing",
       "implementation_status": "reconstructed_partial",
-      "implemented": "Full-database pagination, many filters, nine skill minimums, shortlist and delayed scout reports.",
-      "remaining": "Nationality, first/reserve filter, per-skill maximums, potential/youth reports and competitor alerts.",
+      "implemented": "Full-database pagination, many filters, first-team/reserve filters, nine skill minimums and maximums, shortlist, delayed scout reports, competitor-interest alerts and scout-gated reconstructed potential estimates.",
+      "remaining": "Nationality, exact position decoding, potential calibration and historical competitor behaviour.",
       "evidence": [
         "Sources/USMApp/TransferScreens.swift",
         "Sources/USMCore/Management.swift"
@@ -805,8 +805,8 @@
       "screen": "BUYING PLAYERS",
       "baseline_status": "Partial",
       "implementation_status": "reconstructed_partial",
-      "implemented": "Persistent staged negotiations, incoming listed bids, renewals, final approval, swap/appearance/bonus clauses, loans and return.",
-      "remaining": "AI market activity, configurable loans/wage split, all original sales/free-agent cases and varied interest/patience.",
+      "implemented": "Persistent staged negotiations, incoming listed bids, renewals, final approval, swap/appearance/bonus clauses, loans and return; AI buying/loan offers and configurable loan wage contributions.",
+      "remaining": "All original sales/free-agent cases and varied interest/patience calibration.",
       "evidence": [
         "Sources/USMCore/Management.swift",
         "Sources/USMCore/ContractTerms.swift",

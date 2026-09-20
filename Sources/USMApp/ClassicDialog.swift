@@ -72,8 +72,17 @@ struct MatchIntervalDialog:View {
     }
     func incidents(_ side:Int)->some View {
         ScrollView {VStack(spacing:3) {ForEach(match.events.filter{$0.side==side && ["goal","yellow","red"].contains($0.kind)}) {event in
-            Text("\(event.minute)′  \(match.players.first{$0.id==event.playerID}?.name ?? "")\(event.kind=="yellow" ? "  ▨":event.kind=="red" ? "  ■":"  ⚽")")
-                .foregroundStyle(event.kind=="red" ? Color.red:event.kind=="yellow" ? Color(red:0.45,green:0.32,blue:0):royal)
+            HStack(spacing:5) {
+                Text("\(event.minute)′  \(match.players.first{$0.id==event.playerID}?.name ?? "")")
+                    .foregroundStyle(event.kind=="red" ? Color.red:royal)
+                if event.kind=="yellow" {
+                    RoundedRectangle(cornerRadius:1.5).fill(Color(red:1,green:0.78,blue:0.02)).frame(width:10,height:14).overlay(RoundedRectangle(cornerRadius:1.5).stroke(.black.opacity(0.35),lineWidth:0.7))
+                } else if event.kind=="red" {
+                    RoundedRectangle(cornerRadius:1.5).fill(Color.red).frame(width:10,height:14).overlay(RoundedRectangle(cornerRadius:1.5).stroke(.black.opacity(0.35),lineWidth:0.7))
+                } else {
+                    Text("⚽").foregroundStyle(royal)
+                }
+            }
         }}}.font(.system(size:13,weight:.bold)).frame(maxWidth:.infinity)
     }
 }
