@@ -161,3 +161,21 @@ TODO: none for the stadium orientation and zoom-only controls.
 - Reworked the title screen into the original-style horizontal Manager / Coach / Load Game menu panel.
 - Added the cleaned supplied-reference background at `Sources/USMApp/Resources/MainMenuBackground.png`, with the popup and shadow removed while retaining the football scene and Version 2.00 label.
 - Verification: `swift run -c release USMVerify` — 54 scenarios, 0 failures; packaged app build pending.
+
+## 2026-09-21 — Match visual repair
+
+- Replaced the malformed sprite atlas/fallback mix with consistent pixel figures: true displacement determines front/back/left/right facing and leg stride; stationary players retain facing without cycling their legs.
+- Rebuilt goal depth/net mesh, denser staggered cheering spectators, and roofed benches with seated substitutes and standing coaches; expanded the camera/runoff area without obscuring boards.
+- Extended wide-shot/pass travel beyond the lines; preserve legal restart spots through reload and substitute replacement, with explicit throw-in/goal-kick/corner ownership.
+- Files: `Sources/USMApp/MatchView.swift`, `Sources/USMCore/LiveMatch.swift`, `Sources/USMCore/MatchRules.swift`, `Tests/USMCoreTests/CareerTests.swift`, `Tests/USMCoreTests/Runner.swift`, `PROJECT_PLAN.md`, `AGENTS.md`, `docs/audit/implementation-progress.json`.
+- Validation: 56 verifier scenarios; isolated native-renderer directional/idle/four-frame assertions and visual inspection at two pitch sizes/both goal cameras. Final release/signature and coordination gates recorded in PROJECT_PLAN.md. Main save and currently paused game left untouched.
+- Limitation: renderer QA is not full live-window interaction verification; graphics remain reconstructed.
+
+## 2026-09-21 — Follow-up match camera, pacing and tactics
+
+- Tightened camera pan stops and increased pitch/player scale by approximately 19%; extended ball-runoff physics remains unchanged.
+- Cards/goals now stop the simulation immediately and use 1.8/speed and 2.4/speed seconds respectively; manual pauses persist, and fast-step batches cannot continue behind overlays.
+- Fixed offside detection to count the keeper/use the defending trap and keep default support onside. Goal-kick setup now uses formation rather than the free-kick wall branch.
+- Added clear pre-match/in-match captain and set-piece taker selectors. Separate QA app confirmed visible controls, selections, Apply and persistence in active-match/career tactics.
+- Files: App.swift, MatchView.swift, TacticalScreens.swift, LiveMatch.swift, MatchRules.swift, new MatchPlayback.swift and MatchPlaybackTests.swift, CareerTests.swift/Runner.swift, and progress/plan/audit docs.
+- Verification: five new scenarios (61 total); focused popup/restart/taker tests and renderer checks pass. Post-change six-seed sample: 4 offsides/1,035 passes; earlier 48-seed baseline: 649/7,669. Samples are not matched. Full `USMVerify`: 61 scenarios, 0 failures; release app build, strict signature, coordination and diff checks pass. Main game/save untouched.

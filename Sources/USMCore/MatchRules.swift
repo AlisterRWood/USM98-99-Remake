@@ -5,12 +5,13 @@ public struct ReplayFrame:Codable {
 }
 public extension LiveMatch {
     func restartSpot(for restart:SetPieceRestart)->FieldPoint {
+        if let spot=restart.spot { return spot }
         if restart.kind == "throw in" { return FieldPoint(ball.x,ball.y).clamped() }
         return FieldPoint(direction(restart.side)>0 ? 5:100,min(44,max(24,ball.y)))
     }
     mutating func queueRestart(kind:String,side:Int,taker:Int,spot:FieldPoint,outsideBall:FieldPoint) {
-        pendingRestart=SetPieceRestart(kind:kind,side:side,taker:players[taker].id,remaining:3)
-        setPieceRestart=nil;flight=nil;owner=nil;ball=outsideBall;activeSetPlay=kind;deadBallDelay=0.35
+        pendingRestart=SetPieceRestart(kind:kind,side:side,taker:players[taker].id,remaining:3,spot:spot.clamped())
+        setPieceRestart=nil;flight=nil;owner=nil;ball=outsideBall.runoffClamped();activeSetPlay=kind;deadBallDelay=0.35
         applyPendingSubstitutions()
     }
     @discardableResult mutating func requestSubstitution(out:String,in incoming:String)->Bool {
@@ -73,6 +74,7 @@ public extension LiveMatch {
 public struct SetPieceRestart:Codable {
     public var kind:String,side:Int,taker:String
     public var remaining:Double
+    public var spot:FieldPoint? = nil
 }
 public extension LiveMatch {
     func outOfBoundsSpot(for flight:BallFlight)->FieldPoint {
@@ -82,16 +84,34 @@ public extension LiveMatch {
         let x=flight.from.x+(flight.target.x-flight.from.x)*fraction
         return FieldPoint(min(104.5,max(0.5,x)),edge)
     }
-    mutating func awardThrowIn(lastTouchSide:Int,spot:FieldPoint) {
+    func sideExitProgress(for flight:BallFlight)->Double? {
+        guard flight.target.y < 0 || flight.target.y > 68 else { return nil }
+        let edge=flight.target.y < 0 ? 0.5:67.5
+        let delta=flight.target.y-flight.from.y
+        guard abs(delta)>0.0001 else { return nil }
+        let progress=(edge-flight.from.y)/delta
+        return progress >= 0 && progress <= 1 ? progress:nil
+    }
+    func goalExitProgress(for flight:BallFlight)->Double? {
+        let edge:Double
+        if flight.target.x < 0 { edge=0.5 }
+        else if flight.target.x > 105 { edge=104.5 }
+        else { return nil }
+        let delta=flight.target.x-flight.from.x
+        guard abs(delta)>0.0001 else { return nil }
+        let progress=(edge-flight.from.x)/delta
+        return progress >= 0 && progress <= 1 ? progress:nil
+    }
+    mutating func awardThrowIn(lastTouchSide:Int,spot:FieldPoint,outsideBall:FieldPoint?=nil) {
         let side=1-lastTouchSide
         guard let taker=players.indices.filter({players[$0].side==side && players[$0].onPitch && players[$0].slot != 0}).min(by:{players[$0].point.distance(to:spot)<players[$1].point.distance(to:spot)}) else{return}
-        queueRestart(kind:"throw in",side:side,taker:taker,spot:spot,outsideBall:FieldPoint(spot.x,spot.y < 34 ? -1.5:69.5))
+        queueRestart(kind:"throw in",side:side,taker:taker,spot:spot,outsideBall:outsideBall ?? FieldPoint(spot.x,spot.y < 34 ? -8:76))
         record("throw in","Throw-in to \(players[taker].name)'s side of the pitch.",side:side,player:players[taker].id)
     }
     mutating func awardGoalKick(side:Int,spotY:Double,outsideX:Double?=nil) {
         guard let keeper=players.firstIndex(where:{$0.side==side && $0.onPitch && $0.slot==0}) else{return}
         let spot=FieldPoint(direction(side)>0 ? 5:100,min(44,max(24,spotY)))
-        queueRestart(kind:"goal kick",side:side,taker:keeper,spot:spot,outsideBall:FieldPoint(outsideX ?? (direction(side)>0 ? 105.8:-0.8),spotY))
+        queueRestart(kind:"goal kick",side:side,taker:keeper,spot:spot,outsideBall:FieldPoint(outsideX ?? (direction(side)>0 ? -12:117),spotY))
         record("goal kick","Goal kick to \(players[keeper].name).",side:side,player:players[keeper].id)
     }
     /// Adds the movement a player makes around their formation reference during open play.
@@ -172,6 +192,7 @@ public extension LiveMatch {
         let attackingLimit=attacking ? 99.0:96.0
         let defendingLimit=attacking ? 8.0:19.0
         if d>0 { x=min(attackingLimit,max(defendingLimit,x)) } else { x=max(105-attackingLimit,min(105-defendingLimit,x)) }
+        if attacking,let frontier=attackingSupportFrontier(for:player.side),x*d>frontier {x=frontier*d}
         return FieldPoint(x,min(64,max(4,y)))
     }
     func goalkeeperTarget(_ player:MatchPlayer)->FieldPoint {
@@ -179,19 +200,29 @@ public extension LiveMatch {
         let depth=min(10,max(2,territory*0.10))
         return FieldPoint(d>0 ? depth:105-depth,min(41,max(27,34+(ball.y-34)*0.18)))
     }
+    func goalKickSetupTarget(for player:MatchPlayer,side:Int,routine:SetPieceRoutine)->FieldPoint {
+        let d=direction(player.side)
+        var target=formationPoint(slot:player.slot,side:player.side,withBall:player.side==side,referenceBall:FieldPoint(52.5,34))
+        if player.side==side && routine.kind == .shortDistribution && player.role != "FWD" {
+            target=FieldPoint(d>0 ? 18+Double(player.slot%3)*5:87-Double(player.slot%3)*5,12+Double(player.slot%7)*7)
+        }
+        return target
+    }
     func runningSpeed(_ player:MatchPlayer,carrying:Bool)->Double {
         (2.8+Double(player.skills[4])*0.065)*(0.65+player.fitness/285)*(carrying ? 0.84:1)
     }
     mutating func prepareRestart(kind:String,side:Int,taker:Int,spot:FieldPoint) {
         ball=spot;flight=nil;owner=players[taker].id;players[taker].point=spot;holdTime=0
         activeSetPlay=kind;deadBallDelay=nil
-        setPieceRestart=SetPieceRestart(kind:kind,side:side,taker:players[taker].id,remaining:3)
+        setPieceRestart=SetPieceRestart(kind:kind,side:side,taker:players[taker].id,remaining:3,spot:spot.clamped())
         applyPendingSubstitutions()
     }
-    mutating func awardCorner(side:Int,left:Bool) {
+    mutating func awardCorner(side:Int,left:Bool,outsideBall:FieldPoint?=nil) {
         let t=side==0 ? homeTactics:awayTactics
         guard let i=players.firstIndex(where:{$0.id==t.takers?["Corner"] && $0.onPitch && $0.side==side}) ?? players.firstIndex(where:{$0.side==side && $0.onPitch && $0.slot != 0}) else{return}
-        prepareRestart(kind:left ? "left corner":"right corner",side:side,taker:i,spot:FieldPoint(direction(side)>0 ? 104.5:0.5,left ? 0.5:67.5))
+        let kind=left ? "left corner":"right corner",spot=FieldPoint(direction(side)>0 ? 104.5:0.5,left ? 0.5:67.5)
+        if let outsideBall { queueRestart(kind:kind,side:side,taker:i,spot:spot,outsideBall:outsideBall) }
+        else { prepareRestart(kind:kind,side:side,taker:i,spot:spot) }
         record("corner","Corner awarded. \(players[i].name) places the ball; players move into position.",side:side,player:players[i].id)
     }
     func setPieceRoutine(for restart:SetPieceRestart)->SetPieceRoutine {
@@ -278,8 +309,8 @@ public extension LiveMatch {
                 }
                 else if restart.kind=="penalty" {target=FieldPoint(d>0 ? 84:21,15+Double(p.slot%8)*5)}
                 else if restart.kind=="free kick" && attacking && routine.kind == .whippedCross {target=FieldPoint(d>0 ? 91+Double(p.slot%3)*2:14-Double(p.slot%3)*2,20+Double(p.slot%6)*5)}
-                else if restart.kind=="goal kick" && attacking && routine.kind == .shortDistribution && p.role != "FWD" {target=FieldPoint(d>0 ? 18+Double(p.slot%3)*5:87-Double(p.slot%3)*5,12+Double(p.slot%7)*7)}
-                else if !attacking && p.slot<5 {target=FieldPoint(spot.x+d*9.5,spot.y+Double(p.slot-2)*1.2).clamped()}
+                else if restart.kind=="goal kick" {target=goalKickSetupTarget(for:p,side:side,routine:routine)}
+                else if !attacking && (restart.kind=="free kick" || restart.kind=="offside") && p.slot<5 {target=FieldPoint(spot.x+d*9.5,spot.y+Double(p.slot-2)*1.2).clamped()}
             }
             if p.slot==0 {target=goalkeeperTarget(p)}
             else if !attacking && target.distance(to:spot)<9.15 {target=FieldPoint(spot.x-d*10,target.y).clamped()}

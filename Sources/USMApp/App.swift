@@ -41,12 +41,14 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
     @Published var soundEnabled = true
     @Published var matchRunning = false
     @Published var matchSpeed = 1.0
-    var matchStepAccumulator=0.0
+    private var matchPlayback=MatchPlayback()
+    private var lastMatchTick=ProcessInfo.processInfo.systemUptime
     @Published var matchChoice = false
     @Published var matchControls = false
     @Published var endOfSeasonShown = false
-    @Published var matchCard:LiveEvent?
-    private var matchCardExpiresAt=0.0
+    @Published var matchPopup:LiveEvent?
+    var matchCard:LiveEvent? {matchPopup.flatMap{["yellow","red"].contains($0.kind) ? $0:nil}}
+    var matchGoal:LiveEvent? {matchPopup.flatMap{$0.kind == "goal" ? $0:nil}}
     @Published var hasSave = false
     let databases: [DatabaseOption: Database]
     @Published var selectedDatabase: DatabaseOption = .megaUpdate
@@ -99,6 +101,7 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
         loadCareer(from:saveURL)
     }
     func loadCareer(from url:URL) {
+        resetMatchPresentation()
         do { career=try SaveStore.load(from:url);restoreDatabaseMetadata();endOfSeasonShown=career.seasonFinished;save();screen=career.activeMatch == nil ? "club":"match";room="Stadium";page="Stadium";matchRunning=false;audio.play("fl_load");audio.matchAmbience(career.activeMatch != nil) }
         catch { message="Could not load career: \(error.localizedDescription)" }
     }
@@ -141,7 +144,7 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
         enter("Dressing room")
     }
     func beginMatch(watch:Bool) {
-        matchCard=nil
+        resetMatchPresentation()
         guard let fixture=career.fixtures.first(where:{!$0.played && $0.round==career.week && ($0.home==career.clubID || $0.away==career.clubID)}) else {return}
         career.activeMatch=LiveMatch(career:career,fixture:fixture)
         matchChoice=false;screen="match";matchRunning=false;audio.matchAmbience(true)
@@ -154,25 +157,28 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
         else {matchRunning.toggle()}
         if !matchRunning {audio.stopSpeech();save()}
     }
+    func resetMatchPresentation() {
+        matchPlayback.reset();matchPopup=nil;lastMatchTick=ProcessInfo.processInfo.systemUptime
+    }
     func tick() {
         audio.setPlaybackSpeed(matchSpeed)
         audio.serviceCommentary()
-        if matchCard != nil && ProcessInfo.processInfo.systemUptime>=matchCardExpiresAt {matchCard=nil}
-        guard screen=="match",matchRunning,var live=career.activeMatch else {return}
-        let count=live.events.count
-        // 1x: 90 minutes in about four minutes. All speeds use identical 0.1 s steps.
-        matchStepAccumulator += matchSpeed
-        while matchStepAccumulator>=1 {
-            let before=live.events.count
-            live.step(0.1);matchStepAccumulator -= 1
-            if let card=live.events.dropFirst(before).last(where:{$0.kind=="yellow" || $0.kind=="red"}) {
-                matchCard=card;matchCardExpiresAt=ProcessInfo.processInfo.systemUptime+1.8
-            }
+        let now=ProcessInfo.processInfo.systemUptime
+        let realSeconds=max(0,now-lastMatchTick)
+        lastMatchTick=now
+        guard screen=="match",var live=career.activeMatch else {
+            if matchPopup != nil {resetMatchPresentation()}
+            return
         }
+        guard matchRunning || matchPlayback.popup != nil else {return}
+        let previousPhysicsTime=live.physicsTime
+        let count=live.events.count
+        matchPlayback.advance(&live,realSeconds:realSeconds,speed:matchSpeed,running:matchRunning)
+        if matchPopup != matchPlayback.popup {matchPopup=matchPlayback.popup}
         for event in live.events.dropFirst(count) {audio.event(event.kind=="whistle" && (live.phase == .halfTime || live.isFinished) ? "end whistle":event.kind);audio.commentary(event.kind,name:event.playerID.flatMap{id in live.players.first{$0.id==id}?.name})}
-        career.activeMatch=live
-        if live.restartDelay>0 || live.phase == .halfTime || live.isFinished {matchCard=nil}
-        if live.phase == .halfTime || live.isFinished {matchRunning=false;save()}
+        if live.physicsTime != previousPhysicsTime {career.activeMatch=live}
+        if matchRunning && (live.phase == .halfTime || live.isFinished) {matchRunning=false;save()}
+        guard matchRunning,matchPopup==nil else {return}
         saveTicks += 1
         if saveTicks>=450 {saveTicks=0;save()}
     }
@@ -183,6 +189,7 @@ enum DatabaseOption: String, CaseIterable, Identifiable {
     }
     func instantRemainder() {
         guard career.activeMatch != nil else {return}
+        resetMatchPresentation()
         matchRunning=false;audio.stopSpeech();career.activeMatch?.finishInstantly();audio.event("end whistle");save()
     }
     func title() {matchRunning=false;if screen != "title" {save()};screen="title";audio.matchAmbience(false)}

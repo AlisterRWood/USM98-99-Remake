@@ -2,7 +2,7 @@
 
 Living document for humans and AI agents. It consolidates **current progress**, the **outstanding backlog**, **file ownership**, and **working conventions** so multiple agents can work in parallel without conflicting. Keep it in sync after every piece of work.
 
-Last verified build state: **2026-09-20** — `swift run -c release USMVerify` → **54 scenarios, 0 failures**.
+Last verified build state: **2026-09-21** — `swift run -c release USMVerify` → **61 scenarios, 0 failures**.
 
 # Agent instructions
 
@@ -142,6 +142,7 @@ Implemented and persisted (details in `docs/IMPLEMENTATION-STATUS.md` — dated 
 - **Commerce/finance:** separate sponsor and pitch-board/programme contracts with weekly income + expiry; per-item merchandise and catering costs/prices/sales/profit; ticket classes (terrace/seat/cup/friendly/season/box/school); period/season accounts, interest, overdrafts, borrowing, flotation/shareholders, conditional stadium grants.
 - **Ground:** fully editable SceneKit stadium — plots, four stand positions + corners, stands (capacity bands, two/three-tier, seats/roof/boxes), construction with capacity closure during works, maintenance/condition, building catalogue (shops/cafés/car park etc.), placement/rotation/movement/demolition, paved surround, fixed isometric camera, surrounding town.
 - **Tactics:** captain, set-piece takers, win bonus, offside trap, draggable custom formation, 34 attack/defence situation maps + free-kick maps, copy/paste/reset/undo, named formation library saved in career.
+- **Match presentation (2026-09-21):** displacement-driven directional pixel players with frozen idle legs; mesh goals, animated pixel spectators, dugouts/coaches/substitutes, extended out-of-play flight, tighter goal-end camera stops, and speed-scaled simulation-pausing card/goal popups. Goal-kick formation and keeper-inclusive offside checks are repaired; pre-match/in-match Team Talk expose set-piece takers. Reconstructed; not original-animation parity.
 - **Match:** reconstructed live spatial engine (possession, movement, passing, interceptions, shots, saves, goals), tactical action execution, delayed goalkeeper goal-kick distribution with opponent retreat, post-flight offside restarts, fouls, bookings, second-yellow dismissals, suspensions, corners/free kicks/penalties with visible setup + walls, held-ball takers, queued dead-ball substitutions, replay from recorded frames, 1×–16× speed, save/resume mid-match, full-time report, original CD commentary/player-name speech with pacing rules, whistle effects.
 - **Career/world:** seeded round-robin leagues across 7 countries, domestic knockout cups with draws/byes/shoot-outs, trophies, friendlies, promotion/relegation, rollover, board evaluations + history graphs, dismissal/job applications, Coach-mode financial delegation, fictional private phone (rig/bung/bet) with consequences, message folders (email/voicemail/newspaper), scrapbook, native save slots + import/export + club-summary printing.
 - **Player lifecycle (0.3.1):** imported/estimated DOB, annual ageing at 1 August, individual development ceilings/profiles, training/appearance growth, late-career decline, retirement, guaranteed minimum-20-squad youth intake at rollover with unique generated IDs.

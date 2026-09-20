@@ -1,5 +1,32 @@
 import SwiftUI
 import USMCore
+struct TacticsPlayerOption:Hashable {
+    var id:String
+    var label:String
+}
+struct TacticsPlayerChoice:View {
+    var title:String
+    var takerKey:String?
+    var players:[TacticsPlayerOption]
+    @Binding var tactics:Tactics
+    var onChange:()->Void={}
+    var body:some View {
+        VStack(spacing:2) {
+            Text(title).font(.caption).foregroundStyle(mint)
+            GameChoice(label:"",value:Binding(get:{
+                let id=takerKey == nil ? tactics.captain:tactics.takers?[takerKey!]
+                return players.first{$0.id==id}?.label ?? "Any"
+            },set:{label in
+                let id=players.first{$0.label==label}?.id
+                if let takerKey {
+                    if tactics.takers == nil {tactics.takers=[:]}
+                    tactics.takers?[takerKey]=id
+                } else {tactics.captain=id}
+                onChange()
+            }),options:["Any"]+players.map(\.label))
+        }
+    }
+}
 struct TeamTalkScreen:View {
     @EnvironmentObject var store:GameStore
     var body:some View {
@@ -25,8 +52,10 @@ struct TeamTalkScreen:View {
         }.onDisappear {store.save()}
     }
     func playerChoice(_ title:String)->some View {
-        let players=store.career.lineup.compactMap{id in store.career.players.first{$0.id==id}}
-        return VStack(spacing:2) {Text(title).font(.caption).foregroundStyle(mint);GameChoice(label:"",value:Binding(get:{let id=title=="Captain" ? store.career.tactics.captain:store.career.tactics.takers?[title];return players.first{$0.id==id}?.name ?? "Any"},set:{name in let id=players.first{$0.name==name}?.id;if title=="Captain" {store.career.tactics.captain=id}else{if store.career.tactics.takers==nil{store.career.tactics.takers=[:]};store.career.tactics.takers?[title]=id};store.save()}),options:["Any"]+players.map(\.name))}
+        let players=store.career.lineup.enumerated().compactMap { index,id in
+            store.career.players.first{$0.id==id}.map {TacticsPlayerOption(id:$0.id,label:"\($0.name) · \(index+1)")}
+        }
+        return TacticsPlayerChoice(title:title,takerKey:title=="Captain" ? nil:title,players:players,tactics:$store.career.tactics,onChange:store.save)
     }
 }
 struct FormationEditorScreen:View {
