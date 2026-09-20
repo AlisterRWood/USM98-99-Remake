@@ -180,7 +180,7 @@ public struct LiveMatch: Codable {
         let tactics=side == 0 ? homeTactics:awayTactics
         return planInstructions(tactics,withBall:withBall,setPlay:activeSetPlay).flatMap { player.slot < $0.count ? $0[player.slot] : nil }
     }
-    public func formationPoint(slot:Int,side:Int,withBall:Bool) -> FieldPoint {
+    public func formationPoint(slot:Int,side:Int,withBall:Bool,referenceBall:FieldPoint?=nil) -> FieldPoint {
         let t=side == 0 ? homeTactics:awayTactics
         if let instructions=planInstructions(t,withBall:withBall,setPlay:activeSetPlay),slot<instructions.count {
             let p=instructions[slot].point;return FieldPoint(direction(side)>0 ? p.x:105-p.x,p.y)
@@ -195,13 +195,14 @@ public struct LiveMatch: Codable {
             if slot < start+parts[r] { row=r;count=parts[r];column=slot-start;break }
             start += parts[r]
         }
-        let normalizedBall=direction(side)>0 ? ball.x:105-ball.x
+        let reference=referenceBall ?? ball
+        let normalizedBall=direction(side)>0 ? reference.x:105-reference.x
         let trap=(t.offsideTrap ?? false) && !withBall && row==0 ? 5.0:0
         let mental=trap + (t.mentality == "Attacking" ? 7.0:(t.mentality == "Defensive" ? -7.0:0))
         let base=[25.0,45.0,65.0][row]
         let shift=(normalizedBall-52.5)*0.47+(withBall ? 10.0:-4.0)+mental
         let x=min(row == 0 ? 71:98,max(10,base+shift))
-        let y=68*Double(column+1)/Double(count+1)+(ball.y-34)*0.12
+        let y=68*Double(column+1)/Double(count+1)+(reference.y-34)*0.12
         return FieldPoint(direction(side)>0 ? x:105-x,y).clamped()
     }
     mutating func resetPositions(kickingSide:Int) {
@@ -235,6 +236,12 @@ public struct LiveMatch: Codable {
         target.y += spread*(2.2+compactness*2.5)
         if tactics.offsideTrap ?? false { target=target.moved(toward:threat,distance:2.5) }
         return target.clamped()
+    }
+    func attackingSupportFrontier(for side:Int) -> Double? {
+        let d=direction(side)
+        let defenders=players.filter{$0.onPitch && $0.side != side}.map{$0.point.x*d}.sorted(by:>)
+        guard defenders.count>=2 else{return nil}
+        return max(defenders[1],ball.x*d,d>0 ? 52.5:-52.5)
     }
     func defensivePressing(side:Int) -> Double {
         let tactics=side == 0 ? homeTactics:awayTactics
@@ -463,8 +470,8 @@ public struct LiveMatch: Codable {
     public func offsideCandidate(passerIndex:Int,receiverIndex:Int) -> Bool {
         guard players.indices.contains(passerIndex),players.indices.contains(receiverIndex),passerIndex != receiverIndex else {return false}
         let passer=players[passerIndex],receiver=players[receiverIndex],d=direction(passer.side)
-        let defence=players.filter{$0.onPitch && $0.side != passer.side && $0.slot != 0}.map{$0.point.x*d}.sorted(by:>)
-        let tactics=passer.side==0 ? homeTactics:awayTactics
+        let defence=players.filter{$0.onPitch && $0.side != passer.side}.map{$0.point.x*d}.sorted(by:>)
+        let tactics=passer.side==0 ? awayTactics:homeTactics
         let lineMargin=(tactics.offsideTrap ?? false) ? 1.2:2.8
         return defence.count>=2 && receiver.point.x*d>defence[1]+lineMargin && receiver.point.x*d>ball.x*d+1.0 && receiver.point.x*d>(d>0 ? 52.5:-52.5)
     }

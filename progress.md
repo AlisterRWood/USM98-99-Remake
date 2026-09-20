@@ -170,3 +170,12 @@ TODO: none for the stadium orientation and zoom-only controls.
 - Files: `Sources/USMApp/MatchView.swift`, `Sources/USMCore/LiveMatch.swift`, `Sources/USMCore/MatchRules.swift`, `Tests/USMCoreTests/CareerTests.swift`, `Tests/USMCoreTests/Runner.swift`, `PROJECT_PLAN.md`, `AGENTS.md`, `docs/audit/implementation-progress.json`.
 - Validation: 56 verifier scenarios; isolated native-renderer directional/idle/four-frame assertions and visual inspection at two pitch sizes/both goal cameras. Final release/signature and coordination gates recorded in PROJECT_PLAN.md. Main save and currently paused game left untouched.
 - Limitation: renderer QA is not full live-window interaction verification; graphics remain reconstructed.
+
+## 2026-09-21 — Follow-up match camera, pacing and tactics
+
+- Tightened camera pan stops and increased pitch/player scale by approximately 19%; extended ball-runoff physics remains unchanged.
+- Cards/goals now stop the simulation immediately and use 1.8/speed and 2.4/speed seconds respectively; manual pauses persist, and fast-step batches cannot continue behind overlays.
+- Fixed offside detection to count the keeper/use the defending trap and keep default support onside. Goal-kick setup now uses formation rather than the free-kick wall branch.
+- Added clear pre-match/in-match captain and set-piece taker selectors. Separate QA app confirmed visible controls, selections, Apply and persistence in active-match/career tactics.
+- Files: App.swift, MatchView.swift, TacticalScreens.swift, LiveMatch.swift, MatchRules.swift, new MatchPlayback.swift and MatchPlaybackTests.swift, CareerTests.swift/Runner.swift, and progress/plan/audit docs.
+- Verification: five new scenarios (61 total); focused popup/restart/taker tests and renderer checks pass. Post-change six-seed sample: 4 offsides/1,035 passes; earlier 48-seed baseline: 649/7,669. Samples are not matched. Full `USMVerify`: 61 scenarios, 0 failures; release app build, strict signature, coordination and diff checks pass. Main game/save untouched.

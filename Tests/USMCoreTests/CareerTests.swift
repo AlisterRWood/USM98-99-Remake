@@ -34,11 +34,79 @@ final class CareerTests {
         let passerIndex=try XCTUnwrap(m.players.firstIndex{$0.side==0 && $0.slot==8})
         let receiverIndex=try XCTUnwrap(m.players.firstIndex{$0.side==0 && $0.slot==10})
         m.players[passerIndex].point=FieldPoint(45,34);m.ball=m.players[passerIndex].point;m.owner=m.players[passerIndex].id
-        for i in m.players.indices where m.players[i].side==1 && m.players[i].slot != 0 {m.players[i].point=FieldPoint(60,34)}
-        m.players[receiverIndex].point=FieldPoint(61,34)
+        for i in m.players.indices where m.players[i].side==1 && m.players[i].slot != 0 {m.players[i].point=FieldPoint(58,34)}
+        let lastDefender=try XCTUnwrap(m.players.firstIndex{$0.side==1 && $0.slot==1});m.players[lastDefender].point=FieldPoint(60,34)
+        m.players[receiverIndex].point=FieldPoint(62,34)
         XCTAssertFalse(m.offsideCandidate(passerIndex:passerIndex,receiverIndex:receiverIndex))
         m.players[receiverIndex].point=FieldPoint(64,34)
         XCTAssertTrue(m.offsideCandidate(passerIndex:passerIndex,receiverIndex:receiverIndex))
+        m.players[receiverIndex].point=FieldPoint(62.5,34)
+        m.homeTactics.offsideTrap=true;m.awayTactics.offsideTrap=false
+        XCTAssertFalse(m.offsideCandidate(passerIndex:passerIndex,receiverIndex:receiverIndex))
+        m.homeTactics.offsideTrap=false;m.awayTactics.offsideTrap=true
+        XCTAssertTrue(m.offsideCandidate(passerIndex:passerIndex,receiverIndex:receiverIndex))
+        m.awayTactics.offsideTrap=false;m.activeSetPlay=nil;m.ball=FieldPoint(45,34)
+        for i in m.players.indices where m.players[i].side==0 && m.players[i].slot != 0 {m.players[i].point=FieldPoint(46,34)}
+        let forward=try XCTUnwrap(m.players.first{$0.side==0 && $0.slot==10});m.players[receiverIndex].point=FieldPoint(80,34)
+        let target=m.openPlayTarget(for:forward,base:m.formationPoint(slot:forward.slot,side:0,withBall:true),owningSide:0)
+        XCTAssertTrue(target.x>m.ball.x);XCTAssertTrue(target.x<=60)
+    }
+    func testOffsideRateCalibration() throws {
+        let c=try career(),fixture=try XCTUnwrap(c.nextFixture)
+        var offsides=0,passes=0
+        for seed in 1...6 {
+            var match=LiveMatch(career:c,fixture:fixture);match.rng=RNG(seed:UInt64(seed));match.finishInstantly()
+            offsides += match.events.filter{$0.kind=="offside"}.count
+            passes += match.events.filter{$0.kind=="pass"}.count
+        }
+        print("Offside calibration: \(offsides) offsides across \(passes) passes")
+        XCTAssertTrue(offsides>0)
+        XCTAssertTrue(offsides*30<passes)
+    }
+    func testGoalKickSetupReturnsBothSidesToFormation() throws {
+        let c=try career(),fixture=try XCTUnwrap(c.nextFixture)
+        for kickingSide in 0...1 {
+            var match=LiveMatch(career:c,fixture:fixture);match.phase = .firstHalf
+            let d=match.direction(kickingSide)
+            for i in match.players.indices where match.players[i].onPitch {
+                match.players[i].point=FieldPoint(match.players[i].side==kickingSide ? (d>0 ? 95:10):(d>0 ? 10:95),8+Double(match.players[i].slot%8)*7)
+            }
+            let keeper=try XCTUnwrap(match.players.firstIndex{$0.side==kickingSide && $0.slot==0})
+            let teammate=try XCTUnwrap(match.players.firstIndex{$0.side==kickingSide && $0.slot==2})
+            let opponent=try XCTUnwrap(match.players.firstIndex{$0.side==1-kickingSide && $0.slot==2})
+            match.prepareRestart(kind:"goal kick",side:kickingSide,taker:keeper,spot:FieldPoint(d>0 ? 5:100,34))
+            let restart=try XCTUnwrap(match.setPieceRestart),routine=match.setPieceRoutine(for:restart)
+            let teammateTarget=match.goalKickSetupTarget(for:match.players[teammate],side:kickingSide,routine:routine)
+            let opponentTarget=match.goalKickSetupTarget(for:match.players[opponent],side:kickingSide,routine:routine)
+            let teammateBefore=match.players[teammate].point.distance(to:teammateTarget)
+            let opponentBefore=match.players[opponent].point.distance(to:opponentTarget)
+            for _ in 0..<20 {match.stepRestart(0.1)}
+            XCTAssertTrue(match.players[teammate].point.distance(to:teammateTarget)<teammateBefore)
+            XCTAssertTrue(match.players[opponent].point.distance(to:opponentTarget)<opponentBefore)
+            let startOpponentX=d>0 ? 10.0:95.0
+            XCTAssertTrue((match.players[opponent].point.x-startOpponentX)*d>4)
+        }
+    }
+    func testConfiguredSetPieceTakersSurviveAndFallback() throws {
+        var c=try career();let fixture=try XCTUnwrap(c.nextFixture)
+        let initial=LiveMatch(career:c,fixture:fixture)
+        let corner=try XCTUnwrap(initial.players.first{$0.side==0 && $0.slot==9})
+        let attacking=try XCTUnwrap(initial.players.first{$0.side==0 && $0.slot==8})
+        let defensive=try XCTUnwrap(initial.players.first{$0.side==0 && $0.slot==7})
+        let penalty=try XCTUnwrap(initial.players.first{$0.side==0 && $0.slot==10})
+        c.tactics.takers=["Corner":corner.id,"Attacking free kick":attacking.id,"Defensive free kick":defensive.id,"Penalty":penalty.id]
+        let url=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString+".json")
+        defer {try? FileManager.default.removeItem(at:url)}
+        try SaveStore.save(c,to:url);let restored=try SaveStore.load(from:url)
+        var match=LiveMatch(career:restored,fixture:fixture);match.phase = .firstHalf
+        let opponent=try XCTUnwrap(match.players.firstIndex{$0.side==1 && $0.slot==2})
+        let victim=try XCTUnwrap(match.players.firstIndex{$0.side==0 && $0.slot==6})
+        match.awardCorner(side:0,left:true);XCTAssertEqual(match.setPieceRestart?.taker,corner.id)
+        match.ball=FieldPoint(78,34);match.awardFoul(offender:opponent,victim:victim);XCTAssertEqual(match.setPieceRestart?.taker,attacking.id)
+        match.ball=FieldPoint(50,34);match.awardFoul(offender:opponent,victim:victim);XCTAssertEqual(match.setPieceRestart?.taker,defensive.id)
+        match.ball=FieldPoint(92,34);match.awardFoul(offender:opponent,victim:victim);XCTAssertEqual(match.setPieceRestart?.taker,penalty.id)
+        let unavailable=try XCTUnwrap(match.players.firstIndex{$0.id==corner.id});match.players[unavailable].onPitch=false
+        match.awardCorner(side:0,left:true);XCTAssertNotEqual(match.setPieceRestart?.taker,corner.id)
     }
     func testScoringCalibration() throws {
         let c=try career(),fixture=try XCTUnwrap(c.nextFixture)

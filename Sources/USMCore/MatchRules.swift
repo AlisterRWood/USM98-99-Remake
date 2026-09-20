@@ -192,12 +192,21 @@ public extension LiveMatch {
         let attackingLimit=attacking ? 99.0:96.0
         let defendingLimit=attacking ? 8.0:19.0
         if d>0 { x=min(attackingLimit,max(defendingLimit,x)) } else { x=max(105-attackingLimit,min(105-defendingLimit,x)) }
+        if attacking,let frontier=attackingSupportFrontier(for:player.side),x*d>frontier {x=frontier*d}
         return FieldPoint(x,min(64,max(4,y)))
     }
     func goalkeeperTarget(_ player:MatchPlayer)->FieldPoint {
         let d=direction(player.side),territory=d>0 ? ball.x:105-ball.x
         let depth=min(10,max(2,territory*0.10))
         return FieldPoint(d>0 ? depth:105-depth,min(41,max(27,34+(ball.y-34)*0.18)))
+    }
+    func goalKickSetupTarget(for player:MatchPlayer,side:Int,routine:SetPieceRoutine)->FieldPoint {
+        let d=direction(player.side)
+        var target=formationPoint(slot:player.slot,side:player.side,withBall:player.side==side,referenceBall:FieldPoint(52.5,34))
+        if player.side==side && routine.kind == .shortDistribution && player.role != "FWD" {
+            target=FieldPoint(d>0 ? 18+Double(player.slot%3)*5:87-Double(player.slot%3)*5,12+Double(player.slot%7)*7)
+        }
+        return target
     }
     func runningSpeed(_ player:MatchPlayer,carrying:Bool)->Double {
         (2.8+Double(player.skills[4])*0.065)*(0.65+player.fitness/285)*(carrying ? 0.84:1)
@@ -300,8 +309,8 @@ public extension LiveMatch {
                 }
                 else if restart.kind=="penalty" {target=FieldPoint(d>0 ? 84:21,15+Double(p.slot%8)*5)}
                 else if restart.kind=="free kick" && attacking && routine.kind == .whippedCross {target=FieldPoint(d>0 ? 91+Double(p.slot%3)*2:14-Double(p.slot%3)*2,20+Double(p.slot%6)*5)}
-                else if restart.kind=="goal kick" && attacking && routine.kind == .shortDistribution && p.role != "FWD" {target=FieldPoint(d>0 ? 18+Double(p.slot%3)*5:87-Double(p.slot%3)*5,12+Double(p.slot%7)*7)}
-                else if !attacking && p.slot<5 {target=FieldPoint(spot.x+d*9.5,spot.y+Double(p.slot-2)*1.2).clamped()}
+                else if restart.kind=="goal kick" {target=goalKickSetupTarget(for:p,side:side,routine:routine)}
+                else if !attacking && (restart.kind=="free kick" || restart.kind=="offside") && p.slot<5 {target=FieldPoint(spot.x+d*9.5,spot.y+Double(p.slot-2)*1.2).clamped()}
             }
             if p.slot==0 {target=goalkeeperTarget(p)}
             else if !attacking && target.distance(to:spot)<9.15 {target=FieldPoint(spot.x-d*10,target.y).clamped()}

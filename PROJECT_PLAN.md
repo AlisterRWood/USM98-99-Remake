@@ -25,6 +25,19 @@ Status vocabulary: `queued`, `active`, `blocked`, `done`, and `reconstructed / n
 
 ## Current checkpoint
 
+### 2026-09-21 — Camera, match pacing and set-piece follow-up
+
+- Status: `done` — `swift run -c release USMVerify`: 61 scenarios, 0 failures; `./tools/build-app.sh`: release build and strict signature verification passed; coordination and diff checks passed.
+- Owner: match-followup-root with independent engine and camera/taker UI agents.
+- Camera: approximately 19% closer horizontal view with player/ball scaling and goal-end pan stops at field x 28…77; out-of-play physics bounds remain intact.
+- Playback: new `MatchPlayback` stops the fast-step batch as soon as a goal/card occurs, freezes simulation throughout the popup, scales wall duration by current speed, and preserves manual pause intent. Cards use 1.8/speed seconds; goals use 2.4/speed seconds. No accumulated catch-up steps after dismissal.
+- Tactics: visible captain, defensive/attacking free-kick, corner and penalty controls in pre-match and in-match Team Talk, with unique labels mapped to player IDs and explicit Apply in the match sheet.
+- Engine: offside considers the second-last opponent including goalkeeper and the defending team's trap; default support runs respect the ball/defensive-line/halfway frontier. Goal kicks use formation setup rather than the free-kick wall branch.
+- Evidence: `App.swift`, `MatchView.swift`, `TacticalScreens.swift`, `LiveMatch.swift`, `MatchRules.swift`, `MatchPlayback.swift`, `MatchPlaybackTests.swift`, `CareerTests.swift` and `Runner.swift`.
+- QA: isolated signed app using a copy of the primary career verified visible sheet/footer controls, selected and applied three taker types, and confirmed IDs in both saved career and active-match tactics. Native renderer confirms tighter camera at both ends and preserved idle/facing animation. Primary game/save untouched.
+- Offside evidence: post-change first six seeded matches produced 4 offsides from 1,035 recorded passes (0.39%). The earlier 48-seed baseline produced 649 from 7,669 (8.46%); sample sizes differ, so no exact matched percentage reduction is claimed.
+- Next: user visual review, then resume broader Phase 6 work; full original parity remains unclaimed.
+
 ### 2026-09-21 — Match visual repair
 
 - Status: `done` — `swift run -c release USMVerify`: 56 scenarios, 0 failures; `./tools/build-app.sh`: release build and strict signature verification passed; `./tools/agent-check.sh` and `git diff --check`: passed.
@@ -287,3 +300,11 @@ Use the ownership table in `AGENTS.md` §8. In particular, keep one writer at a 
 - Removed the malformed atlas/fallback alternation; animation now follows actual displacement and retains facing at rest.
 - Added goal depth/netting, denser animated pixel people, roofed touchline benches with substitutes/coaches, and extended ball runoff with legal restart persistence.
 - Added two verifier scenarios, bringing the suite to 56; final gate results are recorded in the current checkpoint.
+
+### 2026-09-21 — Camera limits, event pauses and set-piece setup
+
+- Zoomed pitch/player scale and tightened end-camera stops without shrinking ball physics bounds.
+- Added speed-scaled simulation-blocking popup control with fast-batch interruption and preserved manual pause.
+- Corrected goalkeeper inclusion/opponent-trap offside checks, default attacking support limits and goal-kick formation behavior.
+- Added visible ID-based taker selectors to pre-match and in-match Team Talk; verified applied IDs in an isolated saved match.
+- Added five verifier scenarios (61 total) and expanded existing offside law checks. Current checkpoint records final gates and sample-size limits.

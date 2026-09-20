@@ -82,9 +82,9 @@ struct MatchView:View {
                     Text(red ? "Sent off. Suspended for the next 3 matches.":"Booking recorded.").font(.system(size:13,weight:.bold)).foregroundStyle(red ? Color.red:Color(red:0.62,green:0.45,blue:0))
                 }.frame(width:500)
             }.allowsHitTesting(false)
-        } else if let event=m.events.last, event.kind=="goal", m.restartDelay>0 {
+        } else if !replay,let event=store.matchGoal {
             let scorer = event.playerID.flatMap { id in m.players.first(where: {$0.id==id})?.name } ?? "A superb finish"
-            MatchEventPopup(title:"GOAL!",subtitle:scorer,detail:"\(event.minute)′  \(store.career.name(m.home))  \(m.homeGoals) – \(m.awayGoals)  \(store.career.name(m.away))",icon:"soccerball")
+            MatchEventPopup(title:"GOAL!",subtitle:scorer,detail:"\(event.minute)′  \(store.career.name(m.home))  \(event.homeScore) – \(event.awayScore)  \(store.career.name(m.away))",icon:"soccerball")
         } else if m.phase == .halfTime {
             MatchIntervalDialog(match:m,competition:fixtureCompetition(m))
         } else if m.phase == .fullTime {
@@ -311,11 +311,11 @@ struct LivePitch:View {
     }
     func draw(context:inout GraphicsContext,size:CGSize) {
         func point(_ p:FieldPoint)->CGPoint {
-            let cameraX=min(87,max(18,match.ball.x))
+            let cameraX=min(77,max(28,match.ball.x))
             let depth=max(0,min(1,p.y/68))
-            let scale=size.width/86*(0.78+0.22*depth)
+            let scale=size.width/72*(0.78+0.22*depth)
             return CGPoint(x:size.width*0.5+(p.x-cameraX)*scale,
-                           y:size.height*0.29+p.y*(size.height*0.50/68))
+                           y:size.height*0.27+p.y*(size.height*0.57/68))
         }
         func ground(_ x:Double,_ y:Double,_ w:Double,_ h:Double)->Path {
             var path=Path();path.move(to:point(FieldPoint(x,y)))
@@ -357,7 +357,7 @@ struct LivePitch:View {
             context.stroke(path,with:.color(.white.opacity(0.28)),style:StrokeStyle(lineWidth:1,dash:[4,5]))
         }
         for p in match.activePlayers.sorted(by:{$0.point.y<$1.point.y}) {
-            let foot=point(p.point),r=max(3.6,size.width/175)*(0.75+0.35*p.point.y/68)
+            let foot=point(p.point),r=max(4.25,size.width/148)*(0.75+0.35*p.point.y/68)
             let kit:Color=p.slot==0 ? Color(red:0.95,green:0.69,blue:0.16):(p.side==0 ? Color(red:0.85,green:0.15,blue:0.13):Color(red:0.24,green:0.53,blue:0.94))
             let motion=injectedMotion[p.id] ?? motionTracker.motion(for:p)
             let pose=pixelPose(for:p,match:match,motion:motion)
@@ -368,12 +368,11 @@ struct LivePitch:View {
                 context.draw(Text(name).font(.system(size:10,weight:.bold)).foregroundColor(.white),at:CGPoint(x:foot.x,y:foot.y-r*2.3))
             }
         }
-        let b=point(match.ball),br=max(2.7,size.width/235)
+        let b=point(match.ball),br=max(3.15,size.width/199)
         let rise=match.flight.map{sin($0.progress * .pi)*($0.kind=="shot" ? 20:10)} ?? 0
         context.fill(Path(ellipseIn:CGRect(x:b.x-br+2,y:b.y-br+3,width:br*2,height:br*1.4)),with:.color(.black.opacity(0.45)))
         context.fill(Path(ellipseIn:CGRect(x:b.x-br,y:b.y-br-rise,width:br*2,height:br*2)),with:.color(.white))
         context.fill(Path(ellipseIn:CGRect(x:b.x-br/2,y:b.y-br/2-rise,width:br,height:br)),with:.color(Color(white:0.2)))
-        if match.restartDelay>0 {context.draw(Text("GOAL!").font(.system(size:44,weight:.black,design:.rounded)).foregroundColor(.white),at:CGPoint(x:size.width/2,y:size.height/2))}
         if match.phase == .ready || match.phase == .halfTime || match.phase == .fullTime {
             context.draw(Text(match.phase == .ready ? "READY FOR KICK-OFF":(match.phase == .halfTime ? "HALF-TIME":"FULL-TIME")).font(.system(size:24,weight:.black,design:.rounded)).foregroundColor(.white),at:CGPoint(x:size.width/2,y:size.height/2-32))
         }
@@ -550,11 +549,20 @@ struct MatchdayTacticsView:View {
                         GameChoice(label:"Mentality",value:$tactics.mentality,options:["Defensive","Balanced","Attacking"])
                         GameChoice(label:"Passing",value:$tactics.passing,options:["Short","Mixed","Direct"])
                         GameChoice(label:"Tackling",value:$tactics.tackling,options:["Cautious","Normal","Hard"])
-                        Button((tactics.offsideTrap ?? false) ? "Offside trap: ON":"Offside trap: OFF") {tactics.offsideTrap = !(tactics.offsideTrap ?? false)}
-                        Button("Apply team talk") {store.career.activeMatch?.changeTactics(tactics);store.career.tactics=tactics;store.save();store.audio.play("sq_chalk");feedback="Team talk and instructions applied."}
-                        Text("The full team-talk controls remain available while the match is paused.").font(.system(size:11)).foregroundStyle(muted).fixedSize(horizontal:false,vertical:true)
                     }.frame(width:220)
                 }
+                LazyVGrid(columns:[GridItem(.flexible()),GridItem(.flexible())],spacing:6) {
+                    setPieceChoice("Captain")
+                    setPieceChoice("Defensive free kick")
+                    setPieceChoice("Attacking free kick")
+                    setPieceChoice("Corner")
+                    setPieceChoice("Penalty")
+                }
+                HStack {
+                    Button((tactics.offsideTrap ?? false) ? "Offside trap: ON":"Offside trap: OFF") {tactics.offsideTrap = !(tactics.offsideTrap ?? false)}
+                    Button("Apply team talk") {store.career.activeMatch?.changeTactics(tactics);store.career.tactics=tactics;store.save();store.audio.play("sq_chalk");feedback="Team talk and instructions applied."}
+                }
+                Text("Choose set-piece takers, then apply the team talk while the match is paused.").font(.system(size:11)).foregroundStyle(muted).fixedSize(horizontal:false,vertical:true)
             }.frame(width:505,alignment:.leading)
             VStack(alignment:.leading,spacing:8) {
                 HStack {Text("MATCH SQUAD").font(.system(size:11,weight:.bold)).tracking(2).foregroundStyle(muted);Spacer();Text("\(match.substitutionsUsed) / 3 USED").font(.system(size:11,weight:.bold)).foregroundStyle(mint)}
@@ -569,6 +577,10 @@ struct MatchdayTacticsView:View {
         guard m.managedPlayers.contains(where:{$0.id==outgoing}),m.bench.prefix(5).contains(where:{$0.id==incoming}) else {feedback="Pick a starting player and one of the five unused substitutes.";return}
         if store.career.activeMatch?.requestSubstitution(out:outgoing,in:incoming)==true {store.save();feedback="Substitution registered. \(m.players.first{$0.id==incoming}?.name ?? "The substitute") comes on for \(m.players.first{$0.id==outgoing}?.name ?? "the outgoing player")."}
         else {feedback="That substitution is not available. Check the three-substitution limit and player status."}
+    }
+    func setPieceChoice(_ title:String)->some View {
+        let players=match.managedPlayers.map {TacticsPlayerOption(id:$0.id,label:"\($0.name) · #\($0.number)")}
+        return TacticsPlayerChoice(title:title,takerKey:title=="Captain" ? nil:title,players:players,tactics:$tactics)
     }
 }
 struct MatchReportView:View {
