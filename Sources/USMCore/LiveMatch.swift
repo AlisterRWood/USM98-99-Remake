@@ -12,6 +12,7 @@ public struct FieldPoint: Codable, Equatable {
         return Self(x+(b.x-x)*f, y+(b.y-y)*f)
     }
     public func clamped() -> Self { Self(min(104.5,max(0.5,x)), min(67.5,max(0.5,y))) }
+    public func runoffClamped() -> Self { Self(min(117,max(-12,x)), min(76,max(-8,y))) }
 }
 public struct MatchPlayer: Codable, Identifiable, Equatable {
     public var id: String
@@ -299,8 +300,15 @@ public struct LiveMatch: Codable {
         }
         if let delay=deadBallDelay {
             if delay>0 {deadBallDelay=max(0,delay-dt);return}
-            if let pending=pendingRestart,
-               let taker=players.firstIndex(where:{$0.id==pending.taker && $0.onPitch}) {
+            if var pending=pendingRestart {
+                let taker=players.firstIndex(where:{$0.id==pending.taker && $0.onPitch})
+                    ?? (pending.kind == "goal kick" ? players.firstIndex(where:{$0.side==pending.side && $0.onPitch && $0.slot==0}) : nil)
+                    ?? players.firstIndex(where:{$0.side==pending.side && $0.onPitch && (pending.kind != "throw in" || $0.slot != 0)})
+                guard let taker else {
+                    pendingRestart=nil;deadBallDelay=nil;activeSetPlay=nil
+                    return
+                }
+                pending.taker=players[taker].id
                 pendingRestart=nil
                 prepareRestart(kind:pending.kind,side:pending.side,taker:taker,spot:restartSpot(for:pending))
                 return
@@ -340,9 +348,15 @@ public struct LiveMatch: Codable {
         }
         if var f=flight {
             f.progress=min(1,f.progress+dt/f.duration)
-            ball=FieldPoint(f.from.x+(f.target.x-f.from.x)*f.progress,f.from.y+(f.target.y-f.from.y)*f.progress)
+            ball=FieldPoint(f.from.x+(f.target.x-f.from.x)*f.progress,f.from.y+(f.target.y-f.from.y)*f.progress).runoffClamped()
             flight=f
-            if f.kind=="pass" && f.progress>0.18 && f.progress<0.94,
+            let sideProgress=sideExitProgress(for:f)
+            let goalProgress=goalExitProgress(for:f)
+            let beforeSideExit=sideProgress.map{f.progress < $0} ?? true
+            let beforeGoalExit=goalProgress.map{f.progress < $0} ?? true
+            let touchlineFirst=sideProgress.map{progress in goalProgress.map{progress <= $0} ?? true} ?? false
+            let goalFirst=goalProgress.map{progress in sideProgress.map{progress < $0} ?? true} ?? false
+            if f.kind=="pass" && f.progress>0.18 && f.progress<0.94 && beforeSideExit && beforeGoalExit,
                let defender=players.indices.filter({players[$0].onPitch && players[$0].side != f.side}).min(by:{players[$0].point.distance(to:ball)<players[$1].point.distance(to:ball)}),
                players[defender].point.distance(to:ball)<1.05+defensivePressing(side:players[defender].side)*0.52 {
                 let skill=Double(players[defender].skills.indices.contains(2) ? players[defender].skills[2]:50)
@@ -352,7 +366,7 @@ public struct LiveMatch: Codable {
                     return
                 }
             }
-            if f.kind=="pass",f.offsideReceiver != nil,f.progress>=1 {
+            if f.kind=="pass",f.offsideReceiver != nil,f.progress>=1,!touchlineFirst,!goalFirst {
                 let side=1-f.side
                 let taker=players.firstIndex(where:{$0.side==side && $0.onPitch && $0.slot != 0}) ?? players.firstIndex(where:{$0.side==side && $0.onPitch})
                 if let taker {
@@ -364,11 +378,13 @@ public struct LiveMatch: Codable {
                 }
             }
             if f.progress>=1 {
-                if f.kind == "pass", (f.target.y < 0 || f.target.y > 68) {
-                    awardThrowIn(lastTouchSide:f.side,spot:outOfBoundsSpot(for:f))
-                } else {
-                    resolveFlight(f)
+                if touchlineFirst { awardThrowIn(lastTouchSide:f.side,spot:outOfBoundsSpot(for:f),outsideBall:f.target) }
+                else if goalFirst && f.kind=="pass" {
+                    let attackingGoal=(direction(f.side)>0 && f.target.x>105)||(direction(f.side)<0 && f.target.x<0)
+                    if attackingGoal { awardGoalKick(side:1-f.side,spotY:f.target.y,outsideX:f.target.x) }
+                    else { awardCorner(side:1-f.side,left:f.target.y<34,outsideBall:f.target) }
                 }
+                else { resolveFlight(f) }
             }
             return
         }
@@ -433,7 +449,7 @@ public struct LiveMatch: Codable {
         let lead=receiver.slot==0 ? 0:3.0
         var target=FieldPoint(receiver.point.x+d*lead+(rng.unit()-0.5)*error,receiver.point.y+(rng.unit()-0.5)*error)
         if rng.unit() < min(0.10,error/160) {
-            target.y = rng.unit() < 0.5 ? -1.5-rng.unit()*2.5 : 69.5+rng.unit()*2.5
+            target.y = rng.unit() < 0.5 ? -8:76
         } else {
             target=target.clamped()
         }
@@ -452,6 +468,15 @@ public struct LiveMatch: Codable {
         let lineMargin=(tactics.offsideTrap ?? false) ? 1.2:2.8
         return defence.count>=2 && receiver.point.x*d>defence[1]+lineMargin && receiver.point.x*d>ball.x*d+1.0 && receiver.point.x*d>(d>0 ? 52.5:-52.5)
     }
+    public func shotRunoffTarget(from:FieldPoint,side:Int,targetY:Double,onTarget:Bool)->FieldPoint {
+        let d=direction(side),goalX=d>0 ? 105.0:0.0,runoffX=d>0 ? 117.0:-12.0
+        guard !onTarget else { return FieldPoint(goalX,targetY) }
+        let dx=goalX-from.x,dy=targetY-from.y
+        let xFactor=abs(dx)>0.1 ? (runoffX-from.x)/dx:1
+        let yFactor=abs(dy)>0.1 ? (dy>0 ? (76-from.y)/dy:(-8-from.y)/dy):Double.infinity
+        let factor=max(1,min(xFactor,yFactor))
+        return FieldPoint(from.x+dx*factor,from.y+dy*factor).runoffClamped()
+    }
     mutating func shoot(_ i:Int) {
         let p=players[i],d=direction(p.side),dist=p.point.distance(to:FieldPoint(d>0 ? 105:0,34))
         let setPiece=activeSetPlay=="free kick" || activeSetPlay=="penalty"
@@ -467,8 +492,8 @@ public struct LiveMatch: Codable {
             if p.side==0,let count=homeShotsOnTarget {homeShotsOnTarget=count+1}
             else if p.side==1,let count=awayShotsOnTarget {awayShotsOnTarget=count+1}
         }
-        let y=onTarget ? 34+(rng.unit()-0.5)*6.8 : 34+(rng.unit()<0.5 ? -1:1)*(4.5+rng.unit()*7)
-        let target=FieldPoint(d>0 ? 105.8:-0.8,y)
+        let shotY=onTarget ? 34+(rng.unit()-0.5)*6.8 : 34+(rng.unit()<0.5 ? -1:1)*(4.5+rng.unit()*7)
+        let target=shotRunoffTarget(from:ball,side:p.side,targetY:shotY,onTarget:onTarget)
         flight=BallFlight(from:ball,target:target,progress:0,duration:max(0.3,ball.distance(to:target)/29),kind:"shot",kicker:p.id,receiver:nil,side:p.side,onTarget:onTarget)
         owner=nil;holdTime=0
         if p.side==0 {homeShots += 1} else {awayShots += 1}

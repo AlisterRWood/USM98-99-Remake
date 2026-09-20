@@ -51,6 +51,8 @@ func XCTAssertThrowsError<T>(_ expression:@autoclosure () throws -> T,file:Stati
             ("Live spatial match and half-time",t.testLiveMatchPossessionAndHalfTime),
             ("Goalkeeper distribution and delayed offside",t.testGoalkeeperDistributionAndDelayedOffside),
             ("Ball boundaries, restart ownership and keeper rebounds",t.testBallBoundariesAndRestartOwnership),
+            ("Ball runoff, restart spot and reload",t.testBallRunoffAndRestartSpotSurviveReload),
+            ("Close-range misses clear the goalmouth",t.testCloseRangeMissesClearGoalmouth),
             ("Live substitutions and tactics",t.testLiveSubstitutionsAndTactics),
             ("Advanced tactical instructions and set-piece aliases",t.testAdvancedTacticalInstructionsAndSetPieceAliases),
             ("Live save and speed parity",t.testLiveSaveResumeAndSpeedParity),

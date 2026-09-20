@@ -95,7 +95,7 @@ struct MatchView:View {
     }
     func replayMatch(_ match:LiveMatch)->LiveMatch {
         guard let frames=match.replayFrames,!frames.isEmpty else{return match}
-        let frame=frames[min(frames.count-1,max(0,Int(replayIndex)))];var copy=match;copy.ball=frame.ball;copy.elapsed=frame.time;copy.homeGoals=frame.home;copy.awayGoals=frame.away;copy.flight=nil;copy.owner=nil;copy.restartDelay=0;copy.setPieceRestart=nil;copy.phase=frame.time < 2700 ? .firstHalf:.secondHalf
+        let frame=frames[min(frames.count-1,max(0,Int(replayIndex)))];var copy=match;copy.ball=frame.ball;copy.elapsed=frame.time;copy.physicsTime=frame.time/8;copy.homeGoals=frame.home;copy.awayGoals=frame.away;copy.flight=nil;copy.owner=nil;copy.restartDelay=0;copy.setPieceRestart=nil;copy.pendingRestart=nil;copy.deadBallDelay=nil;copy.goalkeeperResetDelay=nil;copy.phase=frame.time < 2700 ? .firstHalf:.secondHalf
         for i in copy.players.indices {copy.players[i].onPitch=frame.points[copy.players[i].id] != nil;if let point=frame.points[copy.players[i].id]{copy.players[i].point=point}}
         return copy
     }
@@ -256,22 +256,66 @@ struct MatchEventPopup:View {
     }
 }
 struct LivePitch:View {
+    enum PlayerFacing: Equatable {
+        case front, back, left, right
+    }
+    struct PlayerMotion: Equatable {
+        var facing: PlayerFacing = .front
+        var isMoving = false
+        var stride = 0
+        var gaitDistance = 0.0
+    }
+    struct MotionTracker: Equatable {
+        private(set) var positions: [String: FieldPoint] = [:]
+        private(set) var motions: [String: PlayerMotion] = [:]
+        mutating func reset(with players: [MatchPlayer]) {
+            positions = Dictionary(uniqueKeysWithValues: players.map { ($0.id, $0.point) })
+            motions = Dictionary(uniqueKeysWithValues: players.map { ($0.id, PlayerMotion()) })
+        }
+        mutating func capture(_ players: [MatchPlayer]) {
+            let visible = Set(players.map(\.id))
+            positions = positions.filter { visible.contains($0.key) }
+            motions = motions.filter { visible.contains($0.key) }
+            for player in players {
+                var motion = motions[player.id] ?? PlayerMotion()
+                if let previous = positions[player.id] {
+                    let dx = player.point.x - previous.x
+                    let dy = player.point.y - previous.y
+                    let distance = hypot(dx, dy)
+                    motion.isMoving = distance > 0.018 && distance < 8
+                    if motion.isMoving {
+                        if abs(dx) > abs(dy) { motion.facing = dx < 0 ? .left : .right }
+                        else { motion.facing = dy < 0 ? .back : .front }
+                        motion.gaitDistance += distance
+                        motion.stride = Int(motion.gaitDistance / 0.7) % 4
+                    }
+                }
+                motions[player.id] = motion
+                positions[player.id] = player.point
+            }
+        }
+        func motion(for player: MatchPlayer) -> PlayerMotion { motions[player.id] ?? PlayerMotion() }
+    }
     var match:LiveMatch
     var boardBrands:[String]
     var shirtSponsor:String
+    var injectedMotion: [String: PlayerMotion] = [:]
+    @ViewState private var motionTracker = MotionTracker()
     var body:some View {
         GeometryReader { geo in
             Canvas {context,size in draw(context:&context,size:size)}
                 .frame(width:geo.size.width,height:geo.size.height).clipped()
-        }
+        }.onAppear { motionTracker.reset(with: match.activePlayers) }
+            .onChange(of: match.fixtureID) { motionTracker.reset(with: match.activePlayers) }
+            .onChange(of: match.physicsTime) { motionTracker.capture(match.activePlayers) }
     }
     func draw(context:inout GraphicsContext,size:CGSize) {
         func point(_ p:FieldPoint)->CGPoint {
-            let cameraX=min(67,max(38,match.ball.x))
+            let cameraX=min(87,max(18,match.ball.x))
             let depth=max(0,min(1,p.y/68))
             let scale=size.width/86*(0.78+0.22*depth)
             return CGPoint(x:size.width*0.5+(p.x-cameraX)*scale,
-                           y:size.height*0.23+p.y*(size.height*0.58/68))
+                           y:size.height*0.29+p.y*(size.height*0.50/68))
         }
         func ground(_ x:Double,_ y:Double,_ w:Double,_ h:Double)->Path {
             var path=Path();path.move(to:point(FieldPoint(x,y)))
@@ -284,15 +328,8 @@ struct LivePitch:View {
             return path
         }
         context.fill(Path(CGRect(origin:.zero,size:size)),with:.linearGradient(Gradient(colors:[Color(white:0.12),Color(red:0.12,green:0.21,blue:0.13)]),startPoint:.zero,endPoint:CGPoint(x:0,y:size.height)))
-        // Terraced crowd behind the far touchline. Each supporter is a tiny
-        // pixel-era figure rather than a single anonymous dot.
-        for row in 0..<8 {for i in 0..<140 {
-            let x=Double(i)*size.width/140,y=size.height*0.035+Double(row)*size.height*0.016
-            let shirt:[Color]=[Color(red:0.58,green:0.12,blue:0.10),Color(red:0.12,green:0.26,blue:0.52),Color(white:0.72),Color(red:0.76,green:0.58,blue:0.12)]
-            let c=shirt[(i*17+row*7)%shirt.count],pixel=max(1.2,size.width/1100)
-            context.fill(Path(CGRect(x:x,y:y+pixel*1.5,width:pixel*2.2,height:pixel*3)),with:.color(c))
-            context.fill(Path(CGRect(x:x+pixel*0.35,y:y,width:pixel*1.5,height:pixel*1.5)),with:.color(Color(red:0.68,green:0.46,blue:0.30)))
-        }}
+        context.fill(Path(CGRect(x:0,y:size.height*0.22,width:size.width,height:size.height*0.78)),with:.color(Color(red:0.10,green:0.34,blue:0.16)))
+        drawCrowd(context:&context,size:size,time:match.physicsTime)
         // Original boards were a dedicated ADBOARDS.SPR sheet.  We retain the
         // original commercial inventory but redraw each mark at device scale so
         // it stays sharp at modern window sizes.
@@ -304,8 +341,6 @@ struct LivePitch:View {
             context.stroke(Path(roundedRect:r,cornerRadius:1.5),with:.color(.white.opacity(0.32)),lineWidth:0.7)
             if !brand.isEmpty {context.draw(Text(brand.uppercased()).font(.system(size:max(5.5,min(10,size.width/128)),weight:style.weight,design:style.design)).foregroundColor(style.foreground),at:CGPoint(x:r.midX,y:r.midY))}
         }
-        context.fill(Path(CGRect(x:0,y:size.height*0.22,width:size.width,height:size.height*0.78)),with:.color(Color(red:0.10,green:0.34,blue:0.16)))
-        context.fill(ground(-40,-3,185,180),with:.color(Color(red:0.10,green:0.34,blue:0.16)))
         for i in 0..<15 {context.fill(ground(Double(i)*7,0,7,68),with:.color(Color(red:0.10,green:i%2==0 ? 0.38:0.34,blue:0.16)))}
         var lines=ground(0,0,105,68)
         lines.move(to:point(FieldPoint(52.5,0)));lines.addLine(to:point(FieldPoint(52.5,68)))
@@ -314,26 +349,19 @@ struct LivePitch:View {
         for x in [0.0,99.5] {lines.addPath(ground(x,24.84,5.5,18.32))}
         context.stroke(lines,with:.color(.white.opacity(0.8)),lineWidth:1.3)
         for x in [11.0,94.0,52.5] {context.fill(circle(x,34,0.2),with:.color(.white))}
-        for x in [0.0,105.0] {
-            let back=x==0 ? -2.5:107.5
-            let a=point(FieldPoint(x,30.34)),b=point(FieldPoint(x,37.66)),c=point(FieldPoint(back,37.66)),d=point(FieldPoint(back,30.34))
-            let lift=size.height*0.052
-            var net=Path();net.move(to:a);net.addLine(to:CGPoint(x:a.x,y:a.y-lift));net.addLine(to:CGPoint(x:b.x,y:b.y-lift));net.addLine(to:b);net.addLine(to:c);net.addLine(to:CGPoint(x:c.x,y:c.y-lift));net.addLine(to:CGPoint(x:d.x,y:d.y-lift));net.addLine(to:CGPoint(x:a.x,y:a.y-lift))
-            context.stroke(net,with:.color(.white.opacity(0.9)),lineWidth:2)
-            for t in stride(from:0.0,through:1.0,by:0.15) {var mesh=Path();let y=30.34+7.32*t;let f=point(FieldPoint(x,y)),r=point(FieldPoint(back,y));mesh.move(to:CGPoint(x:f.x,y:f.y-lift));mesh.addLine(to:CGPoint(x:r.x,y:r.y-lift));mesh.addLine(to:r);context.stroke(mesh,with:.color(.white.opacity(0.4)),lineWidth:0.6)}
-        }
+        drawGoal(context:&context,at:0,point:point,size:size)
+        drawGoal(context:&context,at:105,point:point,size:size)
+        drawTechnicalArea(context:&context,point:point,time:match.physicsTime)
         if let f=match.flight {
             var path=Path();path.move(to:point(f.from));path.addLine(to:point(match.ball))
             context.stroke(path,with:.color(.white.opacity(0.28)),style:StrokeStyle(lineWidth:1,dash:[4,5]))
         }
         for p in match.activePlayers.sorted(by:{$0.point.y<$1.point.y}) {
-            let foot=point(p.point),r=max(4.5,size.width/125)*(0.75+0.35*p.point.y/68)
+            let foot=point(p.point),r=max(3.6,size.width/175)*(0.75+0.35*p.point.y/68)
             let kit:Color=p.slot==0 ? Color(red:0.95,green:0.69,blue:0.16):(p.side==0 ? Color(red:0.85,green:0.15,blue:0.13):Color(red:0.24,green:0.53,blue:0.94))
-            let pose=pixelPose(for:p,match:match)
-            let forward=match.direction(p.side)>0
-            if !drawSpritePlayer(context:&context,center:foot,scale:r,player:p,pose:pose,forward:forward,time:match.physicsTime) {
-                drawPixelPlayer(context:&context,center:foot,scale:r,player:p,kit:kit,pose:pose,forward:forward,shirtSponsor:shirtSponsor,time:match.physicsTime)
-            }
+            let motion=injectedMotion[p.id] ?? motionTracker.motion(for:p)
+            let pose=pixelPose(for:p,match:match,motion:motion)
+            drawPixelPlayer(context:&context,center:foot,scale:r,player:p,kit:kit,pose:pose,motion:motion)
             if match.owner==p.id {
                 context.stroke(Path(ellipseIn:CGRect(x:foot.x-r*1.5,y:foot.y-r*1.5,width:r*3,height:r*3)),with:.color(mint.opacity(0.85)),lineWidth:1.2)
                 let name=p.name.components(separatedBy:" ").last ?? p.name
@@ -350,62 +378,130 @@ struct LivePitch:View {
             context.draw(Text(match.phase == .ready ? "READY FOR KICK-OFF":(match.phase == .halfTime ? "HALF-TIME":"FULL-TIME")).font(.system(size:24,weight:.black,design:.rounded)).foregroundColor(.white),at:CGPoint(x:size.width/2,y:size.height/2-32))
         }
     }
+    func drawCrowd(context:inout GraphicsContext,size:CGSize,time:Double) {
+        let terrace=CGRect(x:0,y:0,width:size.width,height:size.height*0.205)
+        context.fill(Path(terrace),with:.linearGradient(Gradient(colors:[Color(red:0.055,green:0.07,blue:0.09),Color(red:0.12,green:0.15,blue:0.17)]),startPoint:.zero,endPoint:CGPoint(x:0,y:terrace.maxY)))
+        for row in 0..<6 {
+            let y=size.height*(0.024+Double(row)*0.026)
+            context.fill(Path(CGRect(x:0,y:y+size.height*0.022,width:size.width,height:max(1,size.height*0.004))),with:.color(.black.opacity(0.32)))
+            for seat in 0..<116 {
+                let spacing=size.width/116
+                let x=Double(seat)*spacing + Double((row*11+seat*5)%3)*0.45
+                let pixel=max(1.9,size.width/1050) * (1+Double(row)*0.045)
+                let shirts:[Color]=[Color(red:0.73,green:0.11,blue:0.10),Color(red:0.11,green:0.28,blue:0.62),Color(red:0.92,green:0.86,blue:0.61),Color(red:0.18,green:0.48,blue:0.25),Color(white:0.78)]
+                let shirt=shirts[(seat*13+row*7)%shirts.count]
+                let skin=Color(red:0.72,green:0.49,blue:0.31)
+                let wave=(seat+row*3)%5 == 0 && Int(time*3+Double(seat))%2 == 0
+                context.fill(Path(CGRect(x:x+pixel*0.55,y:y,width:pixel*1.5,height:pixel*1.55)),with:.color(skin))
+                context.fill(Path(CGRect(x:x,y:y+pixel*1.5,width:pixel*2.6,height:pixel*3.2)),with:.color(shirt))
+                context.fill(Path(CGRect(x:x+pixel*0.25,y:y+pixel*4.5,width:pixel*0.8,height:pixel*1.4)),with:.color(Color(white:0.12)))
+                context.fill(Path(CGRect(x:x+pixel*1.55,y:y+pixel*4.5,width:pixel*0.8,height:pixel*1.4)),with:.color(Color(white:0.12)))
+                let armY=wave ? y-pixel*0.8:y+pixel*2.1
+                context.fill(Path(CGRect(x:x-pixel*0.65,y:armY,width:pixel,height:pixel*2.5)),with:.color(shirt))
+                context.fill(Path(CGRect(x:x+pixel*2.3,y:wave ? y-pixel*1.45:y+pixel*2.1,width:pixel,height:pixel*2.5)),with:.color(shirt))
+            }
+        }
+    }
+    func drawGoal(context:inout GraphicsContext,at x:Double,point:@escaping (FieldPoint)->CGPoint,size:CGSize) {
+        let back=x == 0 ? -3.4:108.4
+        let nearTopLeft=point(FieldPoint(x,30.34)),nearBottomLeft=point(FieldPoint(x,37.66))
+        let farTopLeft=point(FieldPoint(back,30.34)),farBottomLeft=point(FieldPoint(back,37.66))
+        let lift=size.height*0.064
+        let nTL=CGPoint(x:nearTopLeft.x,y:nearTopLeft.y-lift),nBL=nearTopLeft
+        let nTR=CGPoint(x:nearBottomLeft.x,y:nearBottomLeft.y-lift),nBR=nearBottomLeft
+        let fTL=CGPoint(x:farTopLeft.x,y:farTopLeft.y-lift),fBL=farTopLeft
+        let fTR=CGPoint(x:farBottomLeft.x,y:farBottomLeft.y-lift),fBR=farBottomLeft
+        var net=Path();net.move(to:nTL);net.addLine(to:nTR);net.addLine(to:fTR);net.addLine(to:fTL);net.closeSubpath()
+        net.move(to:nTL);net.addLine(to:nBL);net.addLine(to:fBL);net.addLine(to:fTL);net.closeSubpath()
+        net.move(to:nTR);net.addLine(to:nBR);net.addLine(to:fBR);net.addLine(to:fTR);net.closeSubpath()
+        context.fill(net,with:.color(.white.opacity(0.10)))
+        context.stroke(net,with:.color(.white.opacity(0.72)),lineWidth:1.1)
+        var backNet=Path();backNet.move(to:fTL);backNet.addLine(to:fTR);backNet.addLine(to:fBR);backNet.addLine(to:fBL);backNet.closeSubpath()
+        context.fill(backNet,with:.color(.white.opacity(0.14)))
+        context.stroke(backNet,with:.color(.white.opacity(0.58)),lineWidth:0.8)
+        func between(_ a:CGPoint,_ b:CGPoint,_ t:Double)->CGPoint { CGPoint(x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t) }
+        for t in stride(from:0.12,through:0.88,by:0.13) {
+            var depth=Path();depth.move(to:between(nTL,fTL,t));depth.addLine(to:between(nTR,fTR,t));context.stroke(depth,with:.color(.white.opacity(0.35)),lineWidth:0.55)
+            var side=Path();side.move(to:between(nTL,nBL,t));side.addLine(to:between(fTL,fBL,t));context.stroke(side,with:.color(.white.opacity(0.28)),lineWidth:0.55)
+            var backHorizontal=Path();backHorizontal.move(to:between(fTL,fBL,t));backHorizontal.addLine(to:between(fTR,fBR,t));context.stroke(backHorizontal,with:.color(.white.opacity(0.35)),lineWidth:0.55)
+            var backVertical=Path();backVertical.move(to:between(fTL,fTR,t));backVertical.addLine(to:between(fBL,fBR,t));context.stroke(backVertical,with:.color(.white.opacity(0.35)),lineWidth:0.55)
+        }
+        var posts=Path();posts.move(to:nBL);posts.addLine(to:nTL);posts.addLine(to:nTR);posts.addLine(to:nBR);posts.move(to:nTL);posts.addLine(to:fTL);posts.move(to:nTR);posts.addLine(to:fTR)
+        context.stroke(posts,with:.color(.white),lineWidth:2.5)
+        context.stroke(posts,with:.color(.black.opacity(0.32)),lineWidth:0.8)
+    }
+    func drawTechnicalArea(context:inout GraphicsContext,point:@escaping (FieldPoint)->CGPoint,time:Double) {
+        for (bench,kit) in [(35.0,Color(red:0.85,green:0.15,blue:0.13)),(68.0,Color(red:0.24,green:0.53,blue:0.94))] {
+            let anchor=point(FieldPoint(bench,78)),width=116.0,height=17.0
+            let shelter=CGRect(x:anchor.x-width/2,y:anchor.y-height/2,width:width,height:height)
+            context.fill(Path(roundedRect:shelter,cornerRadius:2),with:.color(Color(red:0.13,green:0.16,blue:0.18)))
+            context.stroke(Path(roundedRect:shelter,cornerRadius:2),with:.color(Color(white:0.78)),lineWidth:1.3)
+            context.fill(Path(CGRect(x:anchor.x-width/2-5,y:anchor.y-height/2-5,width:width+10,height:3)),with:.color(Color(white:0.82)))
+            context.fill(Path(CGRect(x:anchor.x-width/2+4,y:anchor.y+height/2-4,width:width-8,height:3)),with:.color(Color(red:0.32,green:0.18,blue:0.08)))
+            for seat in 0..<7 {
+                let x=anchor.x-width/2+8+Double(seat)*15
+                let wave=(seat+Int(time*2))%3 == 0
+                let coach=seat == 0
+                context.fill(Path(CGRect(x:x+2,y:anchor.y-14,width:4,height:4)),with:.color(Color(red:0.72,green:0.49,blue:0.31)))
+                context.fill(Path(CGRect(x:x,y:anchor.y-10,width:8,height:7)),with:.color(coach ? Color(white:0.12):kit))
+                context.fill(Path(CGRect(x:x+1,y:anchor.y-3,width:2.2,height:4)),with:.color(Color(white:0.14)))
+                context.fill(Path(CGRect(x:x+5,y:anchor.y-3,width:2.2,height:4)),with:.color(Color(white:0.14)))
+                context.fill(Path(CGRect(x:x-2,y:wave ? anchor.y-15:anchor.y-8,width:2,height:6)),with:.color(coach ? Color(white:0.12):kit))
+            }
+            let coachX=shelter.minX-9
+            context.fill(Path(CGRect(x:coachX+2,y:anchor.y-21,width:4,height:4)),with:.color(Color(red:0.72,green:0.49,blue:0.31)))
+            context.fill(Path(CGRect(x:coachX,y:anchor.y-17,width:8,height:10)),with:.color(Color(white:0.08)))
+            context.fill(Path(CGRect(x:coachX+1,y:anchor.y-7,width:2.4,height:8)),with:.color(Color(white:0.10)))
+            context.fill(Path(CGRect(x:coachX+5,y:anchor.y-7,width:2.4,height:8)),with:.color(Color(white:0.10)))
+        }
+    }
     enum PixelPose { case standing, running, passing, shooting, tackling }
-    func pixelPose(for player:MatchPlayer,match:LiveMatch)->PixelPose {
+    func pixelPose(for player:MatchPlayer,match:LiveMatch,motion:PlayerMotion)->PixelPose {
         if match.flight?.kicker == player.id { return match.flight?.kind == "shot" ? .shooting:.passing }
-        if match.events.last(where:{$0.playerID == player.id && match.clockMinute-$0.minute <= 1})?.kind == "tackle" { return .tackling }
+        if match.physicsTime-match.lastTackle < 0.35, match.events.last?.playerID == player.id, match.events.last?.kind == "tackle" { return .tackling }
         if match.phase == .ready || match.phase == .halfTime || match.phase == .fullTime { return .standing }
-        return .running
+        return motion.isMoving ? .running:.standing
     }
-    func drawSpritePlayer(context:inout GraphicsContext,center:CGPoint,scale:Double,player:MatchPlayer,pose:PixelPose,forward:Bool,time:Double)->Bool {
-        let atlasName=player.slot==0 ? "MatchPlayerSpritesGold":(player.side==0 ? "MatchPlayerSpritesRed":"MatchPlayerSpritesBlue")
-        guard let url=Bundle.module.url(forResource:atlasName,withExtension:"png",subdirectory:"Resources"),let source=NSImage(contentsOf:url),let cg=source.cgImage(forProposedRect:nil,context:nil,hints:nil) else {return false}
-        let frame=max(0,Int(time*8+Double(player.number))%8),row:Int
-        if pose == .running && frame % 4 == 0 { return false }
-        switch pose {case .standing:row=forward ? 0:1;case .running:row=forward ? 2:3;case .passing,.shooting:row=4;case .tackling:row=5}
-        let cell=181
-        guard let crop=cg.cropping(to:CGRect(x:frame*cell,y:cg.height-(row+1)*cell,width:cell,height:cell)) else {return false}
-        let image=Image(decorative:crop,scale:1)
-        let height=max(38,scale*6.7),width=height
-        context.draw(image,in:CGRect(x:center.x-width/2,y:center.y-height*0.94,width:width,height:height))
-        return true
-    }
-    func drawPixelPlayer(context:inout GraphicsContext,center:CGPoint,scale:Double,player:MatchPlayer,kit:Color,pose:PixelPose,forward:Bool,shirtSponsor:String,time:Double) {
-        let px=max(1,(scale/3.1).rounded()),x=center.x,y=center.y
+    func drawPixelPlayer(context:inout GraphicsContext,center:CGPoint,scale:Double,player:MatchPlayer,kit:Color,pose:PixelPose,motion:PlayerMotion) {
+        let px=max(1,scale/4.7),x=center.x,y=center.y
         let dark=Color(red:0.04,green:0.035,blue:0.03),skin=Color(red:0.78,green:0.58,blue:0.39),socks=player.side==0 ? Color(white:0.94):Color(white:0.14)
         func block(_ bx:Double,_ by:Double,_ w:Double,_ h:Double,_ color:Color) {let rect=CGRect(x:(bx*px+x).rounded(),y:(by*px+y).rounded(),width:max(1,(w*px).rounded()),height:max(1,(h*px).rounded()));context.fill(Path(rect),with:.color(color))}
-        let phase=Int(time*8+Double(player.number))
         block(-3,0,6,1,dark)
+        if (pose == .running || pose == .standing) && (motion.facing == .left || motion.facing == .right) {
+            drawSideRunner(context:&context,center:center,px:px,player:player,kit:kit,skin:skin,socks:socks,right:motion.facing == .right,frame:motion.stride,moving:pose == .running)
+            return
+        }
         switch pose {
         case .tackling:
             block(-4,-5,6,3,dark);block(-3,-4,5,2,kit);block(2,-2,5,1,skin);block(-4,-1,3,1,socks);block(1,-1,4,1,dark);block(3,0,3,1,dark)
         default:
-            if pose == .running {
-                drawSideRunner(context:&context,center:center,px:px,player:player,kit:kit,skin:skin,socks:socks,forward:forward,frame:phase%4,shirtSponsor:shirtSponsor,scale:scale)
-                return
-            }
-            block(-1.5,-12,3,3,dark);block(-1,-11,2,2,skin);block(-2,-13,4,1,player.number%3==0 ? Color(white:0.12):Color(red:0.18,green:0.09,blue:0.04))
-            block(-3,-9,6,6,dark);block(-2,-8,4,5,kit);block(-1,-8,2,1,Color.white.opacity(0.75))
-            let stride=0.0
+            let back=motion.facing == .back
+            let stride=pose == .running ? [(-1.7,1.7),(-0.7,0.7),(1.7,-1.7),(0.7,-0.7)][motion.stride]:(0,0)
+            block(-1.5,-12,3,3,dark)
+            block(-1,-11,2,2,skin)
+            block(-2,-13,4,1,player.number%3 == 0 ? Color(white:0.12):Color(red:0.18,green:0.09,blue:0.04))
+            if back { block(-1.3,-12,2.6,1.4,dark) }
+            else { block(-0.7,-10.5,0.45,0.45,dark);block(0.35,-10.5,0.45,0.45,dark) }
+            block(-3,-9,6,6,dark);block(-2,-8,4,5,kit)
+            if back { context.draw(Text("\(player.number)").font(.system(size:max(3,px*2.1),weight:.black,design:.monospaced)).foregroundColor(.white.opacity(0.9)),at:CGPoint(x:x,y:y-6.1*px)) }
+            else { block(-1,-8,2,1,Color.white.opacity(0.75)) }
             block(-3,-4,6,2,dark);block(-2,-4,4,1,player.side==0 ? Color(white:0.92):Color(white:0.12))
-            block(-2+stride,-2,1.5,2,socks);block(0.5-stride,-2,1.5,2,socks);block(-2+stride,-0.5,2,1,dark);block(0.5-stride,-0.5,2,1,dark)
-            let arm=pose == .passing || pose == .shooting ? 2.5:1.5
-            block(-4,-8,1,arm,kit);block(3,-8,1,arm,kit);block(-4,-8+arm,1,1,skin);block(3,-8+arm,1,1,skin)
-            let face=forward ? 1.0:-1.0;block(face*0.8,-10,0.7,0.7,skin)
-            if player.slot != 0 && !shirtSponsor.isEmpty && scale > 6 {context.draw(Text(shirtSponsor.uppercased()).font(.system(size:max(2.6,min(5.2,scale*0.42)),weight:.black,design:.rounded)).foregroundColor(.white.opacity(0.9)),at:CGPoint(x:x,y:y-6*px))}
+            block(-2+stride.0,-2,1.5,2,socks);block(0.5+stride.1,-2,1.5,2,socks);block(-2+stride.0,-0.5,2,1,dark);block(0.5+stride.1,-0.5,2,1,dark)
+            let arm=pose == .passing || pose == .shooting ? 2.6:1.5
+            let swing=pose == .running ? [-1.2,-0.4,1.2,0.4][motion.stride]:0
+            block(-4+swing,-8,1,arm,kit);block(3-swing,-8,1,arm,kit);block(-4+swing,-8+arm,1,1,skin);block(3-swing,-8+arm,1,1,skin)
         }
     }
-    func drawSideRunner(context:inout GraphicsContext,center:CGPoint,px:Double,player:MatchPlayer,kit:Color,skin:Color,socks:Color,forward:Bool,frame:Int,shirtSponsor:String,scale:Double) {
-        let x=center.x,y=center.y,dark=Color(red:0.04,green:0.035,blue:0.03),s=forward ? 1.0:-1.0
-        func block(_ bx:Double,_ by:Double,_ w:Double,_ h:Double,_ color:Color) {let mx=forward ? bx : -bx-w;let rect=CGRect(x:(mx*px+x).rounded(),y:(by*px+y).rounded(),width:max(1,(w*px).rounded()),height:max(1,(h*px).rounded()));context.fill(Path(rect),with:.color(color))}
+    func drawSideRunner(context:inout GraphicsContext,center:CGPoint,px:Double,player:MatchPlayer,kit:Color,skin:Color,socks:Color,right:Bool,frame:Int,moving:Bool) {
+        let x=center.x,y=center.y,dark=Color(red:0.04,green:0.035,blue:0.03)
+        func block(_ bx:Double,_ by:Double,_ w:Double,_ h:Double,_ color:Color) {let mx=right ? bx : -bx-w;let rect=CGRect(x:(mx*px+x).rounded(),y:(by*px+y).rounded(),width:max(1,(w*px).rounded()),height:max(1,(h*px).rounded()));context.fill(Path(rect),with:.color(color))}
         let legSwing:[(Double,Double)]=[(2.8,-1.4),(-1.0,2.8),(-2.8,1.4),(1.0,-2.8)]
         let armSwing:[(Double,Double)]=[(2.2,-1.2),(0.8,-2.0),(-2.2,1.2),(-0.8,2.0)]
-        let legs=legSwing[frame],arms=armSwing[frame]
+        let legs=moving ? legSwing[frame]:(0,0),arms=moving ? armSwing[frame]:(0,0)
         block(-0.8,-12,2.7,1,dark);block(-0.2,-11,2.2,2,skin);block(1.5,-10.4,1.3,1,skin);block(1.8,-10.1,0.9,0.7,dark);block(-1,-13,3.6,1,player.number%3==0 ? Color(white:0.12):Color(red:0.18,green:0.09,blue:0.04))
         block(-1.8,-9,4.7,6,dark);block(-1.1,-8,3.8,5,kit);block(-0.2,-8,2.4,1,Color.white.opacity(0.78));block(-2.2,-8,1.3,2.4,kit);block(-2.6+arms.0,-7.6,1.1,2.5,kit);block(-2.8+arms.0,-5.5,1,1,skin);block(1.9+arms.1,-7.1,1,2.2,kit);block(2.5+arms.1,-5.3,1,1,skin)
         block(-1.5,-4,3.8,2,dark);block(-0.9,-4,2.8,1,socks)
         block(-1.3+legs.0,-2,1.5,2,socks);block(0.4+legs.1,-2,1.5,2,socks);block(-1.8+legs.0,-0.5,2.8,1,dark);block(0.1+legs.1,-0.5,2.8,1,dark)
-        if player.slot != 0 && !shirtSponsor.isEmpty && scale > 6 {context.draw(Text(shirtSponsor.uppercased()).font(.system(size:max(2.6,min(5.2,scale*0.42)),weight:.black,design:.rounded)).foregroundColor(.white.opacity(0.9)),at:CGPoint(x:x-s*0.1*px,y:y-6*px))}
     }
     struct BoardStyle {let background:Color;let foreground:Color;let weight:Font.Weight;let design:Font.Design}
     func brandStyle(_ brand:String)->BoardStyle {

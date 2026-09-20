@@ -161,3 +161,12 @@ TODO: none for the stadium orientation and zoom-only controls.
 - Reworked the title screen into the original-style horizontal Manager / Coach / Load Game menu panel.
 - Added the cleaned supplied-reference background at `Sources/USMApp/Resources/MainMenuBackground.png`, with the popup and shadow removed while retaining the football scene and Version 2.00 label.
 - Verification: `swift run -c release USMVerify` — 54 scenarios, 0 failures; packaged app build pending.
+
+## 2026-09-21 — Match visual repair
+
+- Replaced the malformed sprite atlas/fallback mix with consistent pixel figures: true displacement determines front/back/left/right facing and leg stride; stationary players retain facing without cycling their legs.
+- Rebuilt goal depth/net mesh, denser staggered cheering spectators, and roofed benches with seated substitutes and standing coaches; expanded the camera/runoff area without obscuring boards.
+- Extended wide-shot/pass travel beyond the lines; preserve legal restart spots through reload and substitute replacement, with explicit throw-in/goal-kick/corner ownership.
+- Files: `Sources/USMApp/MatchView.swift`, `Sources/USMCore/LiveMatch.swift`, `Sources/USMCore/MatchRules.swift`, `Tests/USMCoreTests/CareerTests.swift`, `Tests/USMCoreTests/Runner.swift`, `PROJECT_PLAN.md`, `AGENTS.md`, `docs/audit/implementation-progress.json`.
+- Validation: 56 verifier scenarios; isolated native-renderer directional/idle/four-frame assertions and visual inspection at two pitch sizes/both goal cameras. Final release/signature and coordination gates recorded in PROJECT_PLAN.md. Main save and currently paused game left untouched.
+- Limitation: renderer QA is not full live-window interaction verification; graphics remain reconstructed.

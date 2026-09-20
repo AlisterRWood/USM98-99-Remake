@@ -25,6 +25,20 @@ Status vocabulary: `queued`, `active`, `blocked`, `done`, and `reconstructed / n
 
 ## Current checkpoint
 
+### 2026-09-21 — Match visual repair
+
+- Status: `done` — `swift run -c release USMVerify`: 56 scenarios, 0 failures; `./tools/build-app.sh`: release build and strict signature verification passed; `./tools/agent-check.sh` and `git diff --check`: passed.
+- Owner: match-repair-root, with separate presentation and ball-runoff agents.
+- Delivered: one coherent pixel player renderer with displacement-driven four-direction facing and stride; stationary feet freeze, retained idle facing, replay-time correction, mesh goals, animated terraced spectators, dugouts with substitutes and coaches, and camera space for extended ball runoff.
+- Rules: misses continue along their shot ray to x -12…117 / y -8…76; legal restart spots persist separately through save/reload; outgoing passes receive throw-ins, goal kicks or corners; missing restart takers get an active replacement.
+- Evidence: `Sources/USMApp/MatchView.swift`, `Sources/USMCore/LiveMatch.swift`, `Sources/USMCore/MatchRules.swift`, `Tests/USMCoreTests/CareerTests.swift`, `Tests/USMCoreTests/Runner.swift`; local previews in `dist/match-visual-qa/`.
+- Visual checks: native Canvas rendered at 1100×530 and 1440×710 pitch sizes and both goal-end cameras. Four-direction movement assertions pass; idle pose pixels are stable across four frames (one-channel antialias tolerance), and all four running frames differ. These are isolated renderer checks, not a full live-window interaction test.
+- Save risk: additive optional restart spot; legacy fallback retained. The user's paused match and primary save were not modified.
+- Remaining: reconstructed pixel artwork still needs subjective in-game calibration; original animation/camera parity is not claimed.
+- Next: user visual review, then resume the broader Phase 6 backlog.
+
+### Previous checkpoint (2026-09-20, retained for history)
+
 - Status: `active`
 - Phase: 6 — tactics and match presentation
 - Next work item: audit and stabilise live-match ball boundaries and restart ownership; touchline exits, goal-line misses, corners, goal kicks, and goalkeeper saves must resolve to distinct legal states before further Phase 6 presentation work.
@@ -267,3 +281,9 @@ Use the ownership table in `AGENTS.md` §8. In particular, keep one writer at a 
 - Reworked `TitleScreen` so Manager, Coach, and Load Game appear as three horizontal choices inside a single red/chrome panel, matching the supplied original-menu composition.
 - Added `Sources/USMApp/Resources/MainMenuBackground.png`, a cleaned background plate derived from the supplied screenshot with the popup and shadow removed.
 - Verification: `swift run -c release USMVerify` — 54 scenarios, 0 failures; packaged app build pending.
+
+### 2026-09-21 — Directional players and stadium presentation repair
+
+- Removed the malformed atlas/fallback alternation; animation now follows actual displacement and retains facing at rest.
+- Added goal depth/netting, denser animated pixel people, roofed touchline benches with substitutes/coaches, and extended ball runoff with legal restart persistence.
+- Added two verifier scenarios, bringing the suite to 56; final gate results are recorded in the current checkpoint.

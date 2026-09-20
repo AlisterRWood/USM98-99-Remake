@@ -552,6 +552,75 @@ final class CareerTests {
         XCTAssertTrue(foundSave)
         XCTAssertTrue(foundRebound)
     }
+    func testBallRunoffAndRestartSpotSurviveReload() throws {
+        let c=try career(),fixture=try XCTUnwrap(c.nextFixture)
+        var m=LiveMatch(career:c,fixture:fixture);m.phase = .firstHalf
+        let passer=try XCTUnwrap(m.players.first{$0.side==0 && $0.slot==10})
+        let receiver=try XCTUnwrap(m.players.first{$0.side==0 && $0.slot==9})
+        m.ball=FieldPoint(61,66)
+        m.flight=BallFlight(from:m.ball,target:FieldPoint(64,76),progress:0,duration:0.4,kind:"pass",kicker:passer.id,receiver:receiver.id,side:0,onTarget:false)
+        m.step()
+        XCTAssertTrue(m.flight != nil)
+        XCTAssertTrue(m.ball.y>67.5)
+        for _ in 0..<10 where m.flight != nil {m.step()}
+        XCTAssertNil(m.flight)
+        XCTAssertEqual(m.pendingRestart?.kind,"throw in")
+        XCTAssertEqual(m.pendingRestart?.spot?.y,67.5)
+        XCTAssertTrue(m.ball.y>=75)
+        let crossing=try XCTUnwrap(m.pendingRestart?.spot)
+        let data=try JSONEncoder().encode(m)
+        var restored=try JSONDecoder().decode(LiveMatch.self,from:data)
+        XCTAssertEqual(restored.pendingRestart?.spot,crossing)
+        if let taker=restored.pendingRestart?.taker,let index=restored.players.firstIndex(where:{$0.id==taker}) {restored.players[index].onPitch=false}
+        for _ in 0..<5 {restored.step()}
+        XCTAssertEqual(restored.setPieceRestart?.kind,"throw in")
+        XCTAssertEqual(restored.setPieceRestart?.spot,crossing)
+        XCTAssertEqual(restored.ball,crossing)
+    }
+    func testCloseRangeMissesClearGoalmouth() throws {
+        let c=try career(),fixture=try XCTUnwrap(c.nextFixture)
+        var right=LiveMatch(career:c,fixture:fixture);right.phase = .firstHalf
+        let rightShooter=try XCTUnwrap(right.players.first{$0.side==0 && $0.slot==10})
+        right.ball=FieldPoint(90,34)
+        let rightTarget=right.shotRunoffTarget(from:right.ball,side:0,targetY:38.5,onTarget:false)
+        XCTAssertEqual(rightTarget.x,117)
+        XCTAssertTrue(abs((34+(rightTarget.y-34)*(105-90)/(117-90))-38.5)<0.001)
+        right.flight=BallFlight(from:right.ball,target:rightTarget,progress:0,duration:1,kind:"shot",kicker:rightShooter.id,receiver:nil,side:0,onTarget:false)
+        for _ in 0..<6 {right.step()}
+        XCTAssertTrue(right.flight != nil);XCTAssertTrue(right.ball.y>37.66)
+        for _ in 0..<20 where right.flight != nil {right.step()}
+        XCTAssertTrue(right.events.contains{$0.kind=="goal kick" || $0.kind=="throw in"})
+        XCTAssertTrue(right.ball.y>37.66 || right.pendingRestart?.spot?.y==67.5)
+
+        var left=LiveMatch(career:c,fixture:fixture);left.phase = .firstHalf
+        let leftShooter=try XCTUnwrap(left.players.first{$0.side==1 && $0.slot==10})
+        left.ball=FieldPoint(15,34)
+        let leftTarget=left.shotRunoffTarget(from:left.ball,side:1,targetY:29.5,onTarget:false)
+        XCTAssertEqual(leftTarget.x,-12)
+        XCTAssertTrue(abs((34+(leftTarget.y-34)*(0-15)/(-12-15))-29.5)<0.001)
+        left.flight=BallFlight(from:left.ball,target:leftTarget,progress:0,duration:1,kind:"shot",kicker:leftShooter.id,receiver:nil,side:1,onTarget:false)
+        for _ in 0..<6 {left.step()}
+        XCTAssertTrue(left.flight != nil);XCTAssertTrue(left.ball.y<30.34)
+        for _ in 0..<20 where left.flight != nil {left.step()}
+        XCTAssertTrue(left.events.contains{$0.kind=="goal kick" || $0.kind=="throw in"})
+        XCTAssertTrue(left.ball.y<30.34 || left.pendingRestart?.spot?.y==0.5)
+
+        var goalPass=LiveMatch(career:c,fixture:fixture);goalPass.phase = .firstHalf
+        let goalPasser=try XCTUnwrap(goalPass.players.first{$0.side==0 && $0.slot==10})
+        goalPass.ball=FieldPoint(90,34)
+        goalPass.flight=BallFlight(from:goalPass.ball,target:FieldPoint(117,34),progress:0,duration:0.1,kind:"pass",kicker:goalPasser.id,receiver:nil,side:0,onTarget:false)
+        goalPass.step()
+        XCTAssertEqual(goalPass.pendingRestart?.kind,"goal kick")
+        XCTAssertEqual(goalPass.pendingRestart?.side,1)
+
+        var ownGoalPass=LiveMatch(career:c,fixture:fixture);ownGoalPass.phase = .firstHalf
+        let ownPasser=try XCTUnwrap(ownGoalPass.players.first{$0.side==0 && $0.slot==10})
+        ownGoalPass.ball=FieldPoint(15,34)
+        ownGoalPass.flight=BallFlight(from:ownGoalPass.ball,target:FieldPoint(-12,34),progress:0,duration:0.1,kind:"pass",kicker:ownPasser.id,receiver:nil,side:0,onTarget:false)
+        ownGoalPass.step()
+        XCTAssertTrue(ownGoalPass.pendingRestart?.kind=="left corner" || ownGoalPass.pendingRestart?.kind=="right corner")
+        XCTAssertEqual(ownGoalPass.pendingRestart?.side,1)
+    }
     func testLiveSubstitutionsAndTactics() throws {
         let c=try career();var m=LiveMatch(career:c,fixture:try XCTUnwrap(c.nextFixture));m.startHalf()
         for _ in 0..<100 {m.step()}
